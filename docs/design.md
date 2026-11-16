@@ -1,6 +1,7 @@
 # Design
 
-Status: converged on 2026-11-16, in two rounds.
+Status: converged on 2026-11-16, in three rounds.
+Rounds 1 and 2 chose the stack (sections 1–12); round 3 chose the architecture (sections 13–14).
 Inputs: [the frame](frame.md) and [the research record](research/README.md).
 Next phase: Spec.
 
@@ -24,6 +25,8 @@ Backend internals (section 11) were never researched, so most of that section is
 | 10 | Results ingestion | Manual through one seam; automation decided in February 2027 | [R], [I] |
 | 11 | Backend internals | axum, sqlx, three-crate hexagonal layout, code-first OpenAPI | [T], [I] |
 | 12 | Repo and CI | One public repo, deploy on merge, freeze in ceremony week | [R], [I] |
+| 13 | Backend architecture | Hexagonal in three crates; real Postgres in use-case tests, no storage fake; scores derived on read | [I] |
+| 14 | Frontend architecture | No domain rules in the client; load functions plus one rune module; components colocated with routes; Tailwind plus daisyUI; no API mocks | [I], [T], [U] |
 
 ## Guiding principle
 
@@ -315,8 +318,10 @@ Crate versions must be verified when the workspace is created.
 - **Why L1:** three rules must be tested exactly yet depend on time or IO: lock time, scoring with ties, verified email.
   A crate boundary is the only mechanism that makes "the domain imports sqlx" a compile error [I].
 - **Breaking case:** traits with one implementation are ceremony.
-- **Rule:** a port exists only where a test needs a fake or a decision was deferred:
-  clock, identity provider, results source, storage.
+- **Rule, as amended in round 3:** a port exists only where a test needs a fake, a decision was deferred,
+  or the dependency would otherwise point outward.
+  The ports are clock, identity provider, results source and storage.
+  Round 2 had only the first two clauses; section 13 explains the third.
 
 **API contract: code-first OpenAPI**
 
@@ -355,10 +360,158 @@ Crate versions must be verified when the workspace is created.
 
 - **Migrations:** forward-only, expanding before they contract [P], because rollback moves code but not schema.
 
+## Round 3 factor map
+
+| Axis | Range considered | Coupled with |
+|---|---|---|
+| B1 Where backend rules live | inline · pure functions · rich aggregates · events | B2 |
+| B2 Layer boundaries | none · modules · crates (crates, from round 2) | B1, B3 |
+| B3 Storage in tests | in-memory fake · real Postgres | B2, F5 |
+| B4 Drivers | HTTP only · HTTP plus CLI (seed file, later a results source) | B2 |
+| B5 Scores | stored · derived on read | B1 |
+| F1 Where frontend rules live | duplicated in the client · server-authoritative | B1 |
+| F2 Server state | load functions · query cache · hand-rolled | F3 |
+| F3 Ballot saving | per-pick autosave · draft plus save button | F2 |
+| F4 Decomposition | by route · by feature · by technical layer | none |
+| F5 Test placement | API mocks · pure leaves plus end-to-end | B3 |
+| F6 Styling and widgets | native plus scoped CSS · utility CSS plus kit · headless library | none |
+
+F3 is a product choice and was handed to Spec; see Open items.
+
+## 13. Backend architecture
+
+**Decision:** hexagonal in three crates, with real Postgres in use-case tests and no in-memory storage fake.
+This refines the layering decision in section 11; the three crates stay.
+
+| Candidate | Rules tested without IO | What the compiler forbids | SQL tested on real Postgres | Storage-fake drift | Code per feature | CLI reuses use cases |
+|---|---|---|---|---|---|---|
+| BA1 Hexagonal, in-memory storage fakes [P] | Yes | Domain and use cases importing axum or sqlx | Only in adapter tests | Present: fakes re-implement uniqueness and foreign keys | Highest | Yes |
+| BA2 Hexagonal, real Postgres in use-case tests [I] | Yes | Same as BA1 | In every use-case test | None | High | Yes |
+| BA3 Functional core, imperative shell, two crates [P] | Yes | Domain importing IO; the shell is unrestricted | Yes | None | Low | By convention only |
+| BA4 One crate, rules inline (L3/L4 in section 11) | No | Nothing | Yes | None | Lowest | No |
+| BA5 Event-sourced core [P] | Yes | Depends on the crate split | Projections only | None | Highest: event store, projections, versioning | Yes |
+
+- **Why BA2:** the application layer earns its place because two drivers exist, HTTP and the CLI [I].
+  Use-case tests meet the real database, so no fake can drift.
+- **Why not BA1:** an in-memory fake must re-implement database constraints,
+  so tests can pass against behaviour Postgres does not have [I].
+- **Why not BA3:** nothing stops SQL in a handler, and CLI and HTTP share use cases only by discipline.
+  It remains the honest minimum: the same tests with a third less code.
+- **Why not BA4:** rules mixed with IO cannot be tested exactly.
+- **Why not BA5:** the infrastructure cost against nine weeks.
+  An append-only results table gets the audit trail without it [I].
+- **Breaking case:** use-case tests need Postgres locally and in CI, and run in seconds, not milliseconds.
+- **Direction:** per-test databases [T]; most rule tests live in the domain crate and stay instant.
+
+**Port rule amended.**
+The round 2 rule allowed a port "only where a test needs a fake or a decision was deferred".
+Under BA2 the storage port meets neither clause.
+The rule gained a third clause: "or where the dependency would otherwise point outward",
+which is the application crate importing sqlx.
+
+**What follows from BA2** (all [I] unless tagged):
+
+- **Domain crate:** types and pure functions only: pick editable, pick valid, leaderboard, should-win statistics.
+- **Scores are derived on every read, never stored.**
+  The pool is about 1,200 picks, and a corrected result then needs no recomputation.
+  The breaking case is thousands of users, which is a frame non-goal [U].
+- **Authorization lives in the use cases,** through an actor value, because both drivers need it.
+- **No unit-of-work abstraction:** no use case writes two aggregates atomically.
+- **Wire types belong to the adapters:** the domain carries no serialization or OpenAPI annotations.
+  The cost is mapping code; the gain is that domain refactors do not change the contract.
+- **Ports:** clock, identity provider, results source, storage.
+- **Test placement:**
+  - Rules: unit and property tests [P] in the domain.
+  - Use cases: real Postgres with a fake clock and fake identity.
+  - HTTP: the router called in-process.
+  - The whole: Playwright.
+
+## 14. Frontend architecture
+
+**Principle: the client holds no domain rules.**
+
+- The server says whether a ballot is editable, what the scores are, and what a player may see.
+- A rule written in two languages drifts, and the client clock cannot be trusted for the lock [I].
+- A hexagonal frontend was rejected: its domain layer would be empty.
+- **Breaking case:** at the lock boundary the UI may offer an edit the server rejects.
+- **Direction:** that rejection is a designed state in the spec, not an error.
+
+**Server state: SvelteKit load functions, plus one rune module for ballot editing**
+
+| Candidate | Works in static SPA | After a manual refresh | Optimistic pick save | New dependencies | What it teaches | Claude's fluency [I] |
+|---|---|---|---|---|---|---|
+| S1 Load functions, plus one rune module for ballot editing | Yes [T, unverified for Kit 3] | Load reruns | Hand-written | None | SvelteKit and runes | High for runes, low for Kit 3 |
+| S2 TanStack Query | Yes | Cache is lost anyway | Built in | One [R] | A library familiar from React | Medium |
+| S3 Hand-rolled rune stores, no load functions | Yes | Refetch on mount | Hand-written | None | Runes in depth | High |
+
+- **Why S1:** it is the framework's own path and adds no dependency.
+- **Why not S2:** caching, deduplication and background refresh target problems
+  that four resources and a refresh model do not have [I].
+- **Breaking case:** a hand-written optimistic save can misorder two quick taps on one category.
+- **Direction:** the spec defines last-tap-wins per category, and a component test pins it.
+
+**Decomposition: components colocated with their route**
+
+| Candidate | Change locality | Parallel trees | Home for shared code | Enforcement |
+|---|---|---|---|---|
+| G1 Components colocated with their route; `lib` holds only `api`, `session`, `ui` | High | None | `lib` | Lint rule |
+| G2 Feature folders under `lib`, thin routes | High | Two: routes mirror features | Feature folders | Lint rule |
+| G3 Technical layers: components, stores, api | Low: one change touches three folders | None | Everything is shared | None |
+
+- **Why G1:** features map one-to-one to routes (ballot, leaderboard, admin results),
+  so feature folders would build the same tree twice [I].
+- **Breaking case:** a component needed by a second route; it moves to `lib/ui` when that second use appears.
+- **Client rule:** only `lib/api` holds the client instance.
+  Generated types may be imported anywhere, because wrapping them would recreate the drift that generation removes [I].
+- **Component rule:** pages fetch and own state; leaf components take props and emit events [P].
+
+**Styling: Tailwind plus daisyUI**
+
+| Candidate | Accessibility comes from | New dependencies | Speed to a decent look | What it teaches | Unverified |
+|---|---|---|---|---|---|
+| H1 Native elements, Svelte scoped CSS, tokens as custom properties | Native semantics | None | Slowest | Svelte styling and CSS | Nothing |
+| H2 Tailwind plus a component kit | The kit | Two or more | Fastest | Tailwind and the kit | Kit compatibility with SvelteKit 3 [T] |
+| H3 Scoped CSS plus bits-ui headless primitives | bits-ui | One | Medium | Svelte styling and a headless API | Its accessibility quality [R] |
+
+- **Why H2:** Tommy chose it over Claude's recommendation of H1 [U].
+  The audience is family and colleagues, nine weeks are short, and a kit buys a polished look without design effort.
+- **Breaking case:** Tailwind utilities and Svelte's scoped `<style>` blocks are two styling systems in one codebase.
+- **Rule:** Tailwind only, with scoped styles as a justified exception [I].
+- **Kept from H1:** native elements stay the first choice for semantics;
+  a kit component is used only where no native element exists [I].
+
+The kit candidates were not researched; cells are [T] unless tagged:
+
+| Candidate | Accessibility comes from | Coupling to SvelteKit 3 | Who owns the component code | Speed to a decent look | What it teaches | Claude's fluency [I] |
+|---|---|---|---|---|---|---|
+| K1 shadcn-svelte | bits-ui primitives [R: exists, quality unexamined] | Its CLI may assume the old `$lib` alias, renamed in Kit 3 [R] | We do: components are copied into the repo | Fast | Tailwind plus headless patterns | High, for versions before Claude's training cutoff |
+| K2 Skeleton | Its own components | The package must support Svelte 5 and Kit 3 | The package | Fast | Skeleton's API | Medium |
+| K3 daisyUI | Native elements styled by classes | None: it is CSS only | Nobody: there are no components | Fast | Tailwind plus semantic class names | High |
+| K4 Flowbite-Svelte | Its own components | The package must track Svelte | The package | Fast | Flowbite's API | Medium |
+
+- **Why daisyUI:** the UI needs only native widgets, and a CSS-only kit styles them
+  with zero coupling to Svelte or SvelteKit versions [I].
+- **Why not K1:** it adds a second dependency on the framework layer that is already the main frontend risk.
+  It can be added later for individual widgets, since both sit on Tailwind.
+- **Why not K2 or K4:** each ties the UI to a package that must keep pace with a six-week-old SvelteKit.
+- **Breaking case:** daisyUI's semantic classes hide Tailwind's utilities, and its themes look generic.
+
+**Test placement: no API mocks**
+
+- Leaf components are tested in Vitest browser mode [R] with props only.
+- Pages are tested by Playwright against the real container.
+- No API mocks, for the same reason as no storage fakes: they drift [I].
+- **Breaking case, the most dangerous in the design:** end-to-end tests must sign in without Google,
+  and a test login shipped to production is an authentication bypass.
+- **Direction:** the fake identity adapter sits behind a compile-time feature absent from the release image,
+  and CI checks the built image [I].
+
 ## Risk controls
 
 - **Day-three skeleton:** one route, one API call, one component test, a static build, deployed.
   It decides Svelte versus Vue, and measures cold start and the custom-domain mapping.
+  It also proves Tailwind's build plugin and daisyUI work with SvelteKit 3 and its Vite version.
+- **Fake identity gate:** the test sign-in adapter is compiled out of the release image, and CI verifies that.
 - **Budget guard:** one Cloud Run instance at most, plus a budget alert.
 - **Deploy freeze** in ceremony week.
 - **Telemetry isolation:** all OTel types live in one module.
@@ -376,9 +529,14 @@ Crate versions must be verified when the workspace is created.
 - Container cold-start time.
 - Current crate versions for the backend stack [T].
 - Whether everyone in the pool has a Google account.
+- Load functions in static SPA mode under SvelteKit 3 [T].
+- Tailwind and daisyUI compatibility with SvelteKit 3 and its Vite version [T].
+- Per-test databases with sqlx [T].
 
 ## Open items
 
 - Whether the leaderboard shows a staleness indicator ("N of 24 categories announced, last result at HH:MM").
   Proposed by Claude; not decided.
 - Which domain name and TLD to buy.
+- Ballot saving: per-pick autosave or a draft with a save button.
+  A product choice, handed to Spec.
