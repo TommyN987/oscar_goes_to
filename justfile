@@ -5,6 +5,9 @@ backend_port := "8080"
 
 # The local Postgres that `just up` starts, unless the environment names another database.
 export DATABASE_URL := env("DATABASE_URL", "postgres://gold_ballot:gold_ballot@localhost:5432/gold_ballot")
+
+# Where the local Grafana stack that `just up` starts receives OTLP over HTTP.
+local_otlp_endpoint := "http://localhost:4318"
 image := "gold-ballot"
 
 # Cloud Run. The Google Cloud project is whichever one gcloud is configured for.
@@ -12,16 +15,22 @@ service := "gold-ballot"
 region := "europe-west1"
 runtime_account := "gold-ballot-run"
 database_url_secret := "database-url"
+otlp_endpoint_secret := "otlp-endpoint"
+otlp_headers_secret := "otlp-headers"
 
 # List the recipes.
 default:
     @just --list
 
-# Start local Postgres and wait until it accepts connections.
+# Start local Postgres and the local Grafana stack; Grafana is at http://localhost:3000.
 up:
     docker compose up --detach --wait
 
-# Stop local Postgres and discard its data.
+# Start only local Postgres, which is all the tests need.
+postgres:
+    docker compose up --detach --wait postgres
+
+# Stop the local services and discard their data.
 down:
     docker compose down
 
@@ -29,9 +38,9 @@ down:
 [parallel]
 dev: dev-backend dev-frontend
 
-# Run the API on its own, restarting on change.
+# Run the API on its own, restarting on change. It exports telemetry to the local Grafana stack.
 dev-backend: up
-    PORT={{ backend_port }} cargo watch --watch crates --exec 'run --bin gold-ballot'
+    PORT={{ backend_port }} OTEL_EXPORTER_OTLP_ENDPOINT={{ local_otlp_endpoint }} cargo watch --watch crates --exec 'run --bin gold-ballot'
 
 # Run the Vite dev server, which proxies /api to the backend.
 dev-frontend:
@@ -40,12 +49,12 @@ dev-frontend:
 # Run every check CI runs.
 check: check-rust check-frontend check-contract
 
-# Format, lints as errors, tests against local Postgres, and the crate dependency rules.
-check-rust: up
+# Format, lints as errors, tests against local Postgres, and the architecture rules.
+check-rust: postgres
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo test --workspace --locked
-    scripts/check-crate-boundaries.sh
+    scripts/check-architecture.sh
 
 # Lint, type-check, component tests and the static build.
 check-frontend:
@@ -71,7 +80,7 @@ image:
     docker build --tag {{ image }} .
 
 # Start the release image against local Postgres and probe what it serves.
-smoke-image: image up
+smoke-image: image postgres
     scripts/smoke-image.sh {{ image }}
 
 # Push the image built by `just image` to a registry reference. Docker must already be logged in to that registry.
@@ -90,7 +99,7 @@ deploy image_ref:
         --max-instances=1 \
         --min-instances=0 \
         --cpu-throttling \
-        --set-secrets=DATABASE_URL={{ database_url_secret }}:latest \
+        --set-secrets=DATABASE_URL={{ database_url_secret }}:latest,OTEL_EXPORTER_OTLP_ENDPOINT={{ otlp_endpoint_secret }}:latest,OTEL_EXPORTER_OTLP_HEADERS={{ otlp_headers_secret }}:latest \
         --quiet
     gcloud run services update-traffic {{ service }} --region={{ region }} --to-latest --quiet
 

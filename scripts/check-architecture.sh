@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Asserts the workspace layout and the dependency rules of the hexagonal crates (spec rules 2.1.1, 2.1.2).
+# Asserts the architecture rules a script can check: the workspace layout, the dependency rules of the
+# hexagonal crates, and the isolation of OpenTelemetry (spec rules 2.1.1, 2.1.2 and 2.7.1).
 set -euo pipefail
 
 failed=0
@@ -34,5 +35,14 @@ for dependency in $application_forbidden; do
         failed=1
     fi
 done
+
+# OpenTelemetry types stay in one module, so an upgrade of those crates touches one file.
+readonly TELEMETRY_MODULE="crates/adapters/src/telemetry.rs"
+otel_outside_its_module=$(grep --recursive --line-number --include='*.rs' 'opentelemetry' crates | grep --invert-match "^$TELEMETRY_MODULE:" || true)
+if [[ -n "$otel_outside_its_module" ]]; then
+    echo "Only $TELEMETRY_MODULE may name OpenTelemetry; found:"
+    echo "$otel_outside_its_module"
+    failed=1
+fi
 
 exit "$failed"

@@ -6,7 +6,7 @@ Rules are cited by number, such as "spec rule 2.4.2", in code comments and test 
 
 ## Commands
 
-- `just up` starts local Postgres; `just dev` and `just check` start it themselves.
+- `just up` starts local Postgres and Grafana; `just dev` and `just check` start what they need themselves.
 - `just dev` runs backend and frontend with reload.
 - `just check` runs every CI check. Run it before calling work done.
 - `just generate` regenerates `openapi.json` and `frontend/src/lib/api/schema.d.ts` after a handler changes.
@@ -21,7 +21,7 @@ When work is ready, Claude says which commands to run and why.
 
 - Three crates, and dependencies point inward only: `adapters` → `application` → `domain`.
 - `domain` holds types and pure functions. It has no IO, async runtime or serialization dependency.
-  `scripts/check-crate-boundaries.sh` enforces this with an allow-list.
+  `scripts/check-architecture.sh` enforces this with an allow-list.
 - `application` holds use cases and ports. It depends on no HTTP or SQL crate.
 - A port exists only where a test needs a fake, a decision was deferred, or the dependency would otherwise point outward.
   The ports are clock, identity provider, results source and storage.
@@ -31,6 +31,9 @@ When work is ready, Claude says which commands to run and why.
 - Use-case tests run against real Postgres. There is no in-memory storage fake.
 - Handlers stay thin. Every API error uses the one JSON shape in `crates/adapters/src/http/error.rs`.
 - OpenAPI is code-first: handlers carry `#[utoipa::path]`, and the committed `openapi.json` must match them.
+- Only `crates/adapters/src/telemetry.rs` names OpenTelemetry types; everything else uses `tracing` macros and the `Telemetry` handle.
+  The OpenTelemetry crates are pinned and upgraded together, in one pull request.
+- Telemetry carries route templates and player IDs only: no email, name, pick, cookie, token or raw URL.
 - Migrations live in `crates/adapters/migrations`, run at startup, are forward-only, and expand before they contract.
 
 ## Frontend rules (design section 14)

@@ -10,6 +10,8 @@ readonly IMAGES_KEPT=5
 readonly RUNTIME_ACCOUNT="gold-ballot-run"
 readonly DEPLOY_ACCOUNT="github-deploy"
 readonly DATABASE_URL_SECRET="database-url"
+readonly OTLP_ENDPOINT_SECRET="otlp-endpoint"
+readonly OTLP_HEADERS_SECRET="otlp-headers"
 readonly IDENTITY_POOL="github"
 readonly IDENTITY_PROVIDER="oscar-goes-to"
 
@@ -71,20 +73,40 @@ bind gcloud projects add-iam-policy-binding "$project" \
 bind gcloud iam service-accounts add-iam-policy-binding "$runtime_email" \
     --member="serviceAccount:$deploy_email" --role=roles/iam.serviceAccountUser
 
-echo "Storing the database connection string as a secret that only the runtime account may read."
-if ! exists gcloud secrets describe "$DATABASE_URL_SECRET"; then
-    # Neon's direct connection string, from the environment or from .env. The app's pool is small enough
-    # not to need Neon's pooler, and migrations need a direct connection.
-    neon_database_url=${NEON_DATABASE_URL:-$(sed -n 's/^NEON_DATABASE_URL=//p' .env 2>/dev/null | tr -d "\"'")}
-    if [[ -z "$neon_database_url" ]]; then
-        echo "Set NEON_DATABASE_URL, or put it in .env, to create the secret $DATABASE_URL_SECRET."
-        exit 1
+# Prints the value of a variable from the environment or, failing that, from .env.
+setting() {
+    local name=$1
+    local value=${!name:-}
+    if [[ -z "$value" && -f .env ]]; then
+        value=$(sed -n "s/^$name=//p" .env | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/")
     fi
-    printf '%s' "$neon_database_url" | gcloud secrets create "$DATABASE_URL_SECRET" \
-        --data-file=- --replication-policy=user-managed --locations="$REGION"
-fi
-bind gcloud secrets add-iam-policy-binding "$DATABASE_URL_SECRET" \
-    --member="serviceAccount:$runtime_email" --role=roles/secretmanager.secretAccessor
+    printf '%s' "$value"
+}
+
+# Creates the secret from a setting, unless the secret already exists, and lets the runtime account read it.
+store_secret() {
+    local secret=$1 setting_name=$2
+    if ! exists gcloud secrets describe "$secret"; then
+        local value
+        value=$(setting "$setting_name")
+        if [[ -z "$value" ]]; then
+            echo "Set $setting_name, or put it in .env, to create the secret $secret."
+            exit 1
+        fi
+        printf '%s' "$value" | gcloud secrets create "$secret" \
+            --data-file=- --replication-policy=user-managed --locations="$REGION"
+    fi
+    bind gcloud secrets add-iam-policy-binding "$secret" \
+        --member="serviceAccount:$runtime_email" --role=roles/secretmanager.secretAccessor
+}
+
+echo "Storing the runtime settings as secrets that only the runtime account may read."
+# Neon's direct connection string. The app's pool is small enough not to need Neon's pooler,
+# and migrations need a direct connection.
+store_secret "$DATABASE_URL_SECRET" NEON_DATABASE_URL
+# Grafana Cloud's OTLP gateway, and its `Authorization=Basic ...` header.
+store_secret "$OTLP_ENDPOINT_SECRET" GRAFANA_OTLP_ENDPOINT
+store_secret "$OTLP_HEADERS_SECRET" GRAFANA_OTLP_HEADERS
 
 echo "Letting workflows on main of $GITHUB_REPOSITORY, and nothing else, act as the deploy account."
 exists gcloud iam workload-identity-pools describe "$IDENTITY_POOL" --location=global ||

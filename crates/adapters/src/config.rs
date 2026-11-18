@@ -6,6 +6,8 @@ use std::path::PathBuf;
 const PORT: &str = "PORT";
 const SPA_DIR: &str = "SPA_DIR";
 const DATABASE_URL: &str = "DATABASE_URL";
+const OTLP_ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
+const TELEMETRY_FLUSH_EACH_REQUEST: &str = "TELEMETRY_FLUSH_EACH_REQUEST";
 
 /// A Postgres connection string. It holds the password, so its `Debug` output hides the value.
 #[derive(Clone, PartialEq, Eq)]
@@ -24,6 +26,16 @@ impl fmt::Debug for DatabaseUrl {
     }
 }
 
+/// How telemetry leaves the process.
+#[derive(Debug, PartialEq, Eq)]
+pub struct TelemetryConfig {
+    /// Export over OTLP. On when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter reads that variable itself.
+    pub export: bool,
+    /// Export before each response, not in the background. A switch for debugging on Cloud Run,
+    /// where background work pauses between requests (spec rule 2.7.5).
+    pub flush_each_request: bool,
+}
+
 /// What the HTTP server needs to start.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ServerConfig {
@@ -33,6 +45,7 @@ pub struct ServerConfig {
     pub spa_dir: Option<PathBuf>,
     /// Where Postgres is. In production it comes from the platform's secret store.
     pub database_url: DatabaseUrl,
+    pub telemetry: TelemetryConfig,
 }
 
 /// A configuration variable that is missing or malformed. Its message names the variable.
@@ -74,10 +87,25 @@ impl ServerConfig {
         let database_url = lookup(DATABASE_URL)
             .map(DatabaseUrl)
             .ok_or(ConfigError::Missing { variable: DATABASE_URL })?;
+        let flush_each_request = match lookup(TELEMETRY_FLUSH_EACH_REQUEST).as_deref() {
+            None | Some("false") => false,
+            Some("true") => true,
+            Some(other) => {
+                return Err(ConfigError::Invalid {
+                    variable: TELEMETRY_FLUSH_EACH_REQUEST,
+                    reason: format!("expected `true` or `false`, found `{other}`"),
+                });
+            }
+        };
+        let telemetry = TelemetryConfig {
+            export: lookup(OTLP_ENDPOINT).is_some_and(|endpoint| !endpoint.is_empty()),
+            flush_each_request,
+        };
         Ok(Self {
             port,
             spa_dir,
             database_url,
+            telemetry,
         })
     }
 }
@@ -136,8 +164,43 @@ mod tests {
                 port: 8080,
                 spa_dir: None,
                 database_url: DatabaseUrl(LOCAL_DATABASE.into()),
+                telemetry: TelemetryConfig {
+                    export: false,
+                    flush_each_request: false,
+                },
             })
         );
+    }
+
+    #[test]
+    fn telemetry_is_exported_when_an_otlp_endpoint_is_set() {
+        let config = ServerConfig::from_lookup(environment(&[
+            ("PORT", "8080"),
+            ("DATABASE_URL", LOCAL_DATABASE),
+            ("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318"),
+            ("TELEMETRY_FLUSH_EACH_REQUEST", "true"),
+        ]))
+        .unwrap();
+
+        assert_eq!(
+            config.telemetry,
+            TelemetryConfig {
+                export: true,
+                flush_each_request: true,
+            }
+        );
+    }
+
+    #[test]
+    fn rule_2_4_3_a_malformed_flush_switch_is_named() {
+        let error = ServerConfig::from_lookup(environment(&[
+            ("PORT", "8080"),
+            ("DATABASE_URL", LOCAL_DATABASE),
+            ("TELEMETRY_FLUSH_EACH_REQUEST", "yes"),
+        ]))
+        .unwrap_err();
+
+        assert!(error.to_string().contains("TELEMETRY_FLUSH_EACH_REQUEST"));
     }
 
     #[test]

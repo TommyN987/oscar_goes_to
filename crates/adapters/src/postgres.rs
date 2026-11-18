@@ -27,11 +27,13 @@ pub async fn connect(database_url: &DatabaseUrl) -> Result<PgPool, sqlx::Error> 
 
 /// Applies every pending migration, each exactly once (spec rule 2.4.6).
 /// Migrations are forward-only; afterwards the schema is the one this build was compiled against.
+#[tracing::instrument(name = "postgres.migrate", skip_all, fields(otel.kind = "client", db.system.name = "postgresql"))]
 pub async fn migrate(database: &PgPool) -> Result<(), MigrateError> {
     MIGRATOR.run(database).await
 }
 
 /// Whether a query currently makes the round trip to the database.
+#[tracing::instrument(name = "postgres.ping", skip_all, fields(otel.kind = "client", db.system.name = "postgresql"))]
 pub async fn is_reachable(database: &PgPool) -> bool {
     sqlx::query("SELECT 1").execute(database).await.is_ok()
 }
