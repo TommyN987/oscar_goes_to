@@ -13,6 +13,7 @@ You need:
 - Node.js at the version in `.node-version`, and pnpm at the version in `frontend/package.json`
 - [just](https://just.systems) and [cargo-watch](https://crates.io/crates/cargo-watch)
 - Docker, only for `just image`
+- `gcloud`, only for `just deploy` and `just rollback`
 
 Then:
 
@@ -39,6 +40,10 @@ just generate
 ```
 
 `just` alone lists every recipe.
+
+## Deploy
+
+A merge to `main` deploys to Cloud Run. [docs/deploy.md](docs/deploy.md) covers the setup, the deploy freeze and rollback.
 
 ## Layout
 

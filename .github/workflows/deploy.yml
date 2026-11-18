@@ -1,0 +1,60 @@
+name: Deploy
+
+# A merge to main deploys to Cloud Run with keyless authentication (spec rule 2.5.1).
+# A manual run deploys even in ceremony week; a push does not (spec rule 2.5.7).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time, in order; a running deploy is never cancelled halfway.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    outputs:
+      frozen: ${{ steps.freeze.outputs.frozen }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: freeze
+        name: Check the ceremony-week deploy freeze
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "frozen=false" >> "$GITHUB_OUTPUT"
+          else
+            scripts/deploy-freeze.sh "$(TZ=Europe/Berlin date +%F)" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: freeze
+    if: needs.freeze.outputs.frozen != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGISTRY: europe-west1-docker.pkg.dev
+      IMAGE_REF: europe-west1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/gold-ballot/gold-ballot:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Build the release image and smoke-test it
+        run: just smoke-image
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Log Docker in to the image repository
+        run: gcloud auth configure-docker "$REGISTRY" --quiet
+      - run: just push-image "$IMAGE_REF"
+      - run: just deploy "$IMAGE_REF"

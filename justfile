@@ -4,6 +4,11 @@
 backend_port := "8080"
 image := "gold-ballot"
 
+# Cloud Run. The Google Cloud project is whichever one gcloud is configured for.
+service := "gold-ballot"
+region := "europe-west1"
+runtime_account := "gold-ballot-run"
+
 # List the recipes.
 default:
     @just --list
@@ -56,3 +61,26 @@ image:
 # Start the release image and probe what it serves.
 smoke-image: image
     scripts/smoke-image.sh {{ image }}
+
+# Push the image built by `just image` to a registry reference. Docker must already be logged in to that registry.
+push-image image_ref:
+    docker tag {{ image }} {{ image_ref }}
+    docker push {{ image_ref }}
+
+# Deploy an image that is already in the registry, and send it all traffic. It never changes who may call the service.
+deploy image_ref:
+    gcloud run deploy {{ service }} \
+        --image={{ image_ref }} \
+        --region={{ region }} \
+        --service-account={{ runtime_account }}@$(gcloud config get-value project).iam.gserviceaccount.com \
+        --execution-environment=gen1 \
+        --memory=256Mi \
+        --max-instances=1 \
+        --min-instances=0 \
+        --cpu-throttling \
+        --quiet
+    gcloud run services update-traffic {{ service }} --region={{ region }} --to-latest --quiet
+
+# Send all traffic to the revision created before the one now serving.
+rollback:
+    scripts/rollback.sh {{ service }} {{ region }}

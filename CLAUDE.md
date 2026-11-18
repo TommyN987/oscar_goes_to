@@ -10,6 +10,12 @@ Rules are cited by number, such as "spec rule 2.4.2", in code comments and test 
 - `just check` runs every CI check. Run it before calling work done.
 - `just generate` regenerates `openapi.json` and `frontend/src/lib/api/schema.d.ts` after a handler changes.
 
+## Git
+
+Tommy makes every git change himself: branches, staging, commits, pushes and merges.
+Claude only reads git; `.claude/hooks/read-only-git.py` denies everything else.
+When work is ready, Claude says which commands to run and why.
+
 ## Backend rules (design sections 11 and 13)
 
 - Three crates, and dependencies point inward only: `adapters` → `application` → `domain`.

@@ -526,13 +526,23 @@ The kit candidates were not researched; cells are [T] unless tagged:
 
 ## Carried into Spec as unverified
 
-- Free custom-domain mapping on Cloud Run [T].
-- Container cold-start time.
-- Current crate versions for the backend stack [T].
+Checked at M0 on 2026-11-18, as spec rule 2.8.4 requires.
+
+**Verified:**
+
+- Crate versions in use: axum 0.8.9, tokio 1.54, tower-http 0.7.1, utoipa 6.0.0 and utoipa-axum 0.3.0, on Rust 1.99.1.
+  The skeleton builds and its tests pass on them.
+- Load functions in static SPA mode under SvelteKit 3: the skeleton's page loads its data that way (SvelteKit 3.2, adapter-static 4.0.1).
+- Tailwind and daisyUI with SvelteKit 3: Tailwind 4.3.5 and daisyUI 5.8.1 build under Vite 8.3.8.
+- Per-test databases with sqlx: the sqlx 0.9.1 documentation states that `#[sqlx::test]` creates a new database for every test.
+  It has not been run in this repo yet.
+- Container cold-start time: see [deploy.md](deploy.md).
+
+**Still unverified:**
+
+- Free custom-domain mapping on Cloud Run [T]; spec rule 2.6.2 checks it when the domain exists.
+- Crate versions not yet in use: sqlx and the OpenTelemetry set [T]; checked when each is added.
 - Whether everyone in the pool has a Google account.
-- Load functions in static SPA mode under SvelteKit 3 [T].
-- Tailwind and daisyUI compatibility with SvelteKit 3 and its Vite version [T].
-- Per-test databases with sqlx [T].
 
 ## Open items
 
