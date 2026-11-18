@@ -6,10 +6,14 @@ set -euo pipefail
 image=$1
 port=18080
 
-# The container joins the compose network, where Postgres answers under its service name.
+# The caller names the compose database as the host sees it. The container joins the compose network,
+# where the same Postgres answers under its service name instead of localhost.
+: "${DATABASE_URL:?is not set; run this script through \`just smoke-image\`}"
+database_url_in_compose_network=${DATABASE_URL/@localhost:/@postgres:}
+
 container=$(docker run --detach --rm --publish "$port:8080" \
     --network gold-ballot_default \
-    --env DATABASE_URL=postgres://gold_ballot:gold_ballot@postgres:5432/gold_ballot \
+    --env DATABASE_URL="$database_url_in_compose_network" \
     "$image")
 trap 'docker stop "$container" >/dev/null' EXIT
 
