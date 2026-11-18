@@ -9,6 +9,7 @@ readonly IMAGE_REPOSITORY="gold-ballot"
 readonly IMAGES_KEPT=5
 readonly RUNTIME_ACCOUNT="gold-ballot-run"
 readonly DEPLOY_ACCOUNT="github-deploy"
+readonly DATABASE_URL_SECRET="database-url"
 readonly IDENTITY_POOL="github"
 readonly IDENTITY_PROVIDER="oscar-goes-to"
 
@@ -36,7 +37,8 @@ gcloud services enable \
     artifactregistry.googleapis.com \
     iam.googleapis.com \
     iamcredentials.googleapis.com \
-    sts.googleapis.com
+    sts.googleapis.com \
+    secretmanager.googleapis.com
 
 echo "Creating the image repository, which keeps only the newest $IMAGES_KEPT images to stay in the free tier."
 exists gcloud artifacts repositories describe "$IMAGE_REPOSITORY" --location="$REGION" ||
@@ -68,6 +70,21 @@ bind gcloud projects add-iam-policy-binding "$project" \
     --member="serviceAccount:$deploy_email" --role=roles/run.developer --condition=None
 bind gcloud iam service-accounts add-iam-policy-binding "$runtime_email" \
     --member="serviceAccount:$deploy_email" --role=roles/iam.serviceAccountUser
+
+echo "Storing the database connection string as a secret that only the runtime account may read."
+if ! exists gcloud secrets describe "$DATABASE_URL_SECRET"; then
+    # Neon's direct connection string, from the environment or from .env. The app's pool is small enough
+    # not to need Neon's pooler, and migrations need a direct connection.
+    neon_database_url=${NEON_DATABASE_URL:-$(sed -n 's/^NEON_DATABASE_URL=//p' .env 2>/dev/null | tr -d "\"'")}
+    if [[ -z "$neon_database_url" ]]; then
+        echo "Set NEON_DATABASE_URL, or put it in .env, to create the secret $DATABASE_URL_SECRET."
+        exit 1
+    fi
+    printf '%s' "$neon_database_url" | gcloud secrets create "$DATABASE_URL_SECRET" \
+        --data-file=- --replication-policy=user-managed --locations="$REGION"
+fi
+bind gcloud secrets add-iam-policy-binding "$DATABASE_URL_SECRET" \
+    --member="serviceAccount:$runtime_email" --role=roles/secretmanager.secretAccessor
 
 echo "Letting workflows on main of $GITHUB_REPOSITORY, and nothing else, act as the deploy account."
 exists gcloud iam workload-identity-pools describe "$IDENTITY_POOL" --location=global ||

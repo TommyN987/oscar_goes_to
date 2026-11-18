@@ -24,10 +24,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness
+         * @description The process can reach the database, so it can serve every request (spec rule 2.4.5).
+         */
+        get: operations["readiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApiError: {
+            code: components["schemas"]["ErrorCode"];
+            message: string;
+        };
+        /**
+         * @description A stable, machine-readable error code. Clients branch on it, so a code is never renamed.
+         * @enum {string}
+         */
+        ErrorCode: "not_found" | "database_unavailable";
         Liveness: {
             /** @example ok */
             status: string;
@@ -57,6 +86,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Liveness"];
+                };
+            };
+        };
+    };
+    readiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The database is reachable. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The database is not reachable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

@@ -1,0 +1,18 @@
+# Local services for development and tests. `just up` starts them.
+name: gold-ballot
+
+services:
+  postgres:
+    # The major version Neon runs in production.
+    image: postgres:18
+    environment:
+      POSTGRES_USER: gold_ballot
+      POSTGRES_PASSWORD: gold_ballot
+      POSTGRES_DB: gold_ballot
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "--username=gold_ballot"]
+      interval: 1s
+      timeout: 2s
+      retries: 30

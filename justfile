@@ -2,23 +2,35 @@
 
 # The local backend port. The Vite dev proxy in frontend/vite.config.ts points at it.
 backend_port := "8080"
+
+# The local Postgres that `just up` starts, unless the environment names another database.
+export DATABASE_URL := env("DATABASE_URL", "postgres://gold_ballot:gold_ballot@localhost:5432/gold_ballot")
 image := "gold-ballot"
 
 # Cloud Run. The Google Cloud project is whichever one gcloud is configured for.
 service := "gold-ballot"
 region := "europe-west1"
 runtime_account := "gold-ballot-run"
+database_url_secret := "database-url"
 
 # List the recipes.
 default:
     @just --list
+
+# Start local Postgres and wait until it accepts connections.
+up:
+    docker compose up --detach --wait
+
+# Stop local Postgres and discard its data.
+down:
+    docker compose down
 
 # Run backend and frontend with reload; open http://localhost:5173.
 [parallel]
 dev: dev-backend dev-frontend
 
 # Run the API on its own, restarting on change.
-dev-backend:
+dev-backend: up
     PORT={{ backend_port }} cargo watch --watch crates --exec 'run --bin gold-ballot'
 
 # Run the Vite dev server, which proxies /api to the backend.
@@ -28,8 +40,8 @@ dev-frontend:
 # Run every check CI runs.
 check: check-rust check-frontend check-contract
 
-# Format, lints as errors, tests, and the crate dependency rules.
-check-rust:
+# Format, lints as errors, tests against local Postgres, and the crate dependency rules.
+check-rust: up
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo test --workspace --locked
@@ -58,8 +70,8 @@ generate:
 image:
     docker build --tag {{ image }} .
 
-# Start the release image and probe what it serves.
-smoke-image: image
+# Start the release image against local Postgres and probe what it serves.
+smoke-image: image up
     scripts/smoke-image.sh {{ image }}
 
 # Push the image built by `just image` to a registry reference. Docker must already be logged in to that registry.
@@ -78,6 +90,7 @@ deploy image_ref:
         --max-instances=1 \
         --min-instances=0 \
         --cpu-throttling \
+        --set-secrets=DATABASE_URL={{ database_url_secret }}:latest \
         --quiet
     gcloud run services update-traffic {{ service }} --region={{ region }} --to-latest --quiet
 
