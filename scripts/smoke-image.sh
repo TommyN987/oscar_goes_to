@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts an image against the Postgres of compose.yaml, which must be running, and checks that it serves
-# the SPA shell, liveness, readiness and a JSON 404 (spec rules 2.3.6, 2.4.1, 2.4.2, 2.4.5).
+# the SPA shell, liveness, readiness and a JSON 404 (spec rules 2.3.6, 2.4.1, 2.4.2, 2.4.5, 2.7.7).
 set -euo pipefail
 
 image=$1
@@ -11,9 +11,14 @@ port=18080
 : "${DATABASE_URL:?is not set; run this script through \`just smoke-image\`}"
 database_url_in_compose_network=${DATABASE_URL/@localhost:/@postgres:}
 
+# Nothing listens here, so every probe below also shows that a dead telemetry backend
+# neither fails nor slows a request (spec rule 2.7.7).
+unreachable_otlp_endpoint=http://localhost:1
+
 container=$(docker run --detach --rm --publish "$port:8080" \
     --network gold-ballot_default \
     --env DATABASE_URL="$database_url_in_compose_network" \
+    --env OTEL_EXPORTER_OTLP_ENDPOINT="$unreachable_otlp_endpoint" \
     "$image")
 trap 'docker stop "$container" >/dev/null' EXIT
 

@@ -14,12 +14,30 @@ A merge to `main` runs `.github/workflows/deploy.yml`.
 
 The service's settings live in the `deploy` recipe of the `justfile`:
 region `europe-west1`, at most one instance, scale to zero, request-based billing, 256 MiB, first-generation environment.
-The recipe also mounts the secret `database-url` as `DATABASE_URL`, so the service definition holds no secret value.
+The recipe also mounts three secrets as environment variables, so the service definition holds no secret value:
+`database-url` as `DATABASE_URL`, and `otlp-endpoint` and `otlp-headers` as `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS`.
 
 Each new revision connects to Neon and applies pending migrations before it serves.
 If that fails, the revision never becomes ready and the previous one keeps serving.
 
 A deploy never changes who may call the service.
+
+## Telemetry
+
+The service exports traces, logs and metrics to Grafana Cloud over OTLP, in batches from background threads.
+Cloud Run pauses background work between requests, so a lone request's trace appears with the next request,
+or when the instance stops, which is at most 15 minutes later.
+On SIGTERM the server finishes the requests in flight and exports what is still in memory.
+
+To see telemetry at once while debugging, make the service export before each response, at the price of one export per request:
+
+```sh
+gcloud run services update gold-ballot --region=europe-west1 --update-env-vars=TELEMETRY_FLUSH_EACH_REQUEST=true
+```
+
+The setting survives deploys; remove it with `--remove-env-vars=TELEMETRY_FLUSH_EACH_REQUEST`.
+
+A failed export never fails a request. It prints an error with the target `opentelemetry_sdk` in the service's logs in Google Cloud.
 
 ## Deploy freeze
 
@@ -44,9 +62,14 @@ It needs `gcloud` logged in as a project owner, with the project as gcloud's con
 
 - the APIs: Cloud Run, Artifact Registry, IAM, IAM Credentials, Security Token Service, Secret Manager
 - an image repository that keeps the newest five images, to stay inside the free 0.5 GB
-- `gold-ballot-run`, the account the app runs as; its only permission is to read the secret below
+- `gold-ballot-run`, the account the app runs as; its only permission is to read the secrets below
 - the secret `database-url`, stored in `europe-west1`: Neon's direct connection string, read from `NEON_DATABASE_URL` in the environment or in `.env`.
   The app uses the direct string, not the pooled one: its pool holds at most five connections, and migrations need a direct connection.
+- the secrets `otlp-endpoint` and `otlp-headers`, read from `GRAFANA_OTLP_ENDPOINT` and `GRAFANA_OTLP_HEADERS`.
+  Grafana Cloud shows both values for a stack under Connections, OpenTelemetry (OTLP):
+  the endpoint looks like `https://otlp-gateway-<region>.grafana.net/otlp`, and the header like `Authorization=Basic <token>`.
+
+A secret that already exists is left alone. To change one, add a version: `gcloud secrets versions add <name> --data-file=-`.
 - `github-deploy`, the account GitHub deploys as: it may push images, deploy revisions, and run them as `gold-ballot-run`
 - an identity pool that lets only workflows on `main` of this repository act as `github-deploy`
 
@@ -64,7 +87,7 @@ The project's organization forbids granting that role to everyone, so the owner 
 gcloud run services update gold-ballot --region=europe-west1 --no-invoker-iam-check
 ```
 
-Status on 2026-11-18: not yet run, so the service answers 403 to the public.
+Done on 2026-11-18; the service has answered the public since.
 
 ## M0 measurements (rule 2.8.3)
 
@@ -72,7 +95,7 @@ Status on 2026-11-18: not yet run, so the service answers 403 to the public.
 |---|---|---|
 | CI duration, cold caches | 53 s wall clock; the slowest job, `frontend`, took 48 s | 2026-11-18, the first run on pull request 1 |
 | Rollback | 15 s for `just rollback` | 2026-11-18, rehearsed from revision 2 to revision 1 |
-| Cold start | 0.77 s for the first request after 17 idle minutes, of which Cloud Run logged 0.17 s in the service; warm requests took 0.17–0.27 s and logged 0.002 s | 2026-11-18, from Tommy's machine, with an authenticated request |
+| Cold start, no database | 0.77 s for the first request after 17 idle minutes, of which Cloud Run logged 0.17 s in the service; warm requests took 0.17–0.27 s | 2026-11-18, from Tommy's machine, with an authenticated request |
+| Cold start, waking Neon | 1.26 s for the first readiness request after 17 idle minutes: the container starts, connects to a suspended Neon, checks migrations and runs a query; warm requests took 0.15–0.22 s | 2026-11-18 23:06 UTC, from Tommy's machine, revision 5, before telemetry was added |
 
 Rule 6.4.6 allows 5 s, so no keep-warm ping is adopted.
-The skeleton has no database yet; the number is measured again once a request also wakes Neon.

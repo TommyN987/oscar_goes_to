@@ -17,3 +17,16 @@ services:
       interval: 1s
       timeout: 2s
       retries: 30
+
+  # Grafana with Tempo, Loki and Prometheus behind one OTLP endpoint: the local twin of Grafana Cloud.
+  # It keeps nothing across restarts.
+  grafana:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "127.0.0.1:3000:3000" # Grafana
+      - "127.0.0.1:4318:4318" # OTLP over HTTP
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:3000/api/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 60

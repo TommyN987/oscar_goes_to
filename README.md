@@ -12,7 +12,7 @@ You need:
 - [rustup](https://rustup.rs); the Rust version in `rust-toolchain.toml` installs itself
 - Node.js at the version in `.node-version`, and pnpm at the version in `frontend/package.json`
 - [just](https://just.systems) and [cargo-watch](https://crates.io/crates/cargo-watch)
-- Docker with Compose, for the local Postgres and for `just image`
+- Docker with Compose, for the local Postgres and Grafana and for `just image`
 - `gcloud`, only for `just deploy` and `just rollback`
 
 Then:
@@ -23,7 +23,8 @@ just dev
 
 Open <http://localhost:5173>.
 The Vite dev server reloads the frontend and proxies `/api` to the backend on port 8080, which restarts when Rust code changes.
-`just dev` first starts Postgres in Docker (`just up`); `just down` stops it and discards its data.
+`just dev` first starts Postgres and a local Grafana stack in Docker (`just up`); `just down` stops them and discards their data.
+The backend's traces, logs and metrics appear in Grafana at <http://localhost:3000>.
 
 ## Check your work
 
@@ -52,7 +53,7 @@ A merge to `main` deploys to Cloud Run. [docs/deploy.md](docs/deploy.md) covers 
 |---|---|
 | `crates/domain` | The game's rules as types and pure functions |
 | `crates/application` | Use cases and their ports |
-| `crates/adapters` | HTTP, Postgres and its migrations, configuration, and the `gold-ballot` binary |
+| `crates/adapters` | HTTP, Postgres and its migrations, telemetry, configuration, and the `gold-ballot` binary |
 | `frontend` | The SvelteKit single-page app |
 | `openapi.json` | The API contract, generated from the handlers |
 | `docs` | Frame, research, design and specification |

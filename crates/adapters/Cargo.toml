@@ -6,14 +6,23 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+# The four opentelemetry crates and tracing-opentelemetry are pinned and must be upgraded together,
+# in one pull request (spec rule 2.7.8). tracing-opentelemetry runs one minor version ahead.
 application = { version = "0.1.0", path = "../application" }
 axum = "0.8.9"
 domain = { version = "0.1.0", path = "../domain" }
+opentelemetry = "=0.33.1"
+opentelemetry-appender-tracing = "=0.33.1"
+opentelemetry-otlp = { version = "=0.33.1", default-features = false, features = ["http-proto", "reqwest-blocking-client", "reqwest-rustls", "trace", "metrics", "logs"] }
+opentelemetry_sdk = "=0.33.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros"] }
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal"] }
 tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
+tracing = "0.1.44"
+tracing-opentelemetry = "=0.34.0"
+tracing-subscriber = { version = "0.3.23", features = ["json"] }
 utoipa = "6.0.0"
 utoipa-axum = "0.3.0"
 

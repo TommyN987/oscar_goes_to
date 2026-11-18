@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use adapters::http::{Spa, router};
+use adapters::telemetry::Telemetry;
 use axum::Router;
 use axum::body::Body;
 use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
@@ -50,7 +51,11 @@ fn built_spa(test_name: &str) -> Spa {
 
 #[tokio::test]
 async fn rule_2_4_5_liveness_answers_without_the_database() {
-    let response = get(router(None, unreachable_database()), "/api/health").await;
+    let response = get(
+        router(None, unreachable_database(), Telemetry::disabled()),
+        "/api/health",
+    )
+    .await;
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(body_json(response).await, serde_json::json!({ "status": "ok" }));
@@ -58,7 +63,11 @@ async fn rule_2_4_5_liveness_answers_without_the_database() {
 
 #[tokio::test]
 async fn rule_2_4_5_readiness_fails_without_the_database() {
-    let response = get(router(None, unreachable_database()), "/api/health/ready").await;
+    let response = get(
+        router(None, unreachable_database(), Telemetry::disabled()),
+        "/api/health/ready",
+    )
+    .await;
 
     assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(body_json(response).await["code"], "database_unavailable");
@@ -66,7 +75,7 @@ async fn rule_2_4_5_readiness_fails_without_the_database() {
 
 #[sqlx::test]
 async fn rule_2_4_5_readiness_answers_when_the_database_is_reachable(database: PgPool) {
-    let response = get(router(None, database), "/api/health/ready").await;
+    let response = get(router(None, database, Telemetry::disabled()), "/api/health/ready").await;
 
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }
@@ -74,7 +83,11 @@ async fn rule_2_4_5_readiness_answers_when_the_database_is_reachable(database: P
 #[tokio::test]
 async fn rule_2_4_2_an_unknown_api_path_is_a_json_404() {
     let response = get(
-        router(Some(built_spa("unknown_api_path")), unreachable_database()),
+        router(
+            Some(built_spa("unknown_api_path")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
         "/api/nope",
     )
     .await;
@@ -87,7 +100,11 @@ async fn rule_2_4_2_an_unknown_api_path_is_a_json_404() {
 #[tokio::test]
 async fn rule_2_4_2_an_unknown_non_api_path_is_the_shell() {
     let response = get(
-        router(Some(built_spa("unknown_non_api_path")), unreachable_database()),
+        router(
+            Some(built_spa("unknown_non_api_path")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
         "/ballot",
     )
     .await;
@@ -99,7 +116,15 @@ async fn rule_2_4_2_an_unknown_non_api_path_is_the_shell() {
 
 #[tokio::test]
 async fn rule_2_4_7_the_shell_is_never_cached() {
-    let response = get(router(Some(built_spa("shell_cache")), unreachable_database()), "/").await;
+    let response = get(
+        router(
+            Some(built_spa("shell_cache")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
+        "/",
+    )
+    .await;
 
     assert_eq!(response.headers()[CACHE_CONTROL], "no-cache");
     assert_eq!(body_text(response).await, SHELL);
@@ -108,7 +133,11 @@ async fn rule_2_4_7_the_shell_is_never_cached() {
 #[tokio::test]
 async fn rule_2_4_7_a_hashed_asset_is_cached_immutably() {
     let response = get(
-        router(Some(built_spa("hashed_asset_cache")), unreachable_database()),
+        router(
+            Some(built_spa("hashed_asset_cache")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
         "/_app/immutable/entry.abc123.js",
     )
     .await;
@@ -120,7 +149,11 @@ async fn rule_2_4_7_a_hashed_asset_is_cached_immutably() {
 #[tokio::test]
 async fn a_missing_hashed_asset_is_a_404_and_is_not_cached() {
     let response = get(
-        router(Some(built_spa("missing_hashed_asset")), unreachable_database()),
+        router(
+            Some(built_spa("missing_hashed_asset")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
         "/_app/immutable/gone.js",
     )
     .await;
@@ -132,7 +165,11 @@ async fn a_missing_hashed_asset_is_a_404_and_is_not_cached() {
 #[tokio::test]
 async fn a_plain_file_is_served_as_itself() {
     let response = get(
-        router(Some(built_spa("plain_file")), unreachable_database()),
+        router(
+            Some(built_spa("plain_file")),
+            unreachable_database(),
+            Telemetry::disabled(),
+        ),
         "/robots.txt",
     )
     .await;

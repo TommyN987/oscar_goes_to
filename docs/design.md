@@ -535,12 +535,13 @@ Checked at M0 on 2026-11-18, as spec rule 2.8.4 requires.
 - Load functions in static SPA mode under SvelteKit 3: the skeleton's page loads its data that way (SvelteKit 3.2, adapter-static 4.0.1).
 - Tailwind and daisyUI with SvelteKit 3: Tailwind 4.3.5 and daisyUI 5.8.1 build under Vite 8.3.8.
 - sqlx 0.9.1 with per-test databases: `#[sqlx::test]` creates a new database for every test, and the readiness test runs that way.
+- The OpenTelemetry set: opentelemetry, opentelemetry_sdk, opentelemetry-otlp and opentelemetry-appender-tracing 0.33.1 with tracing-opentelemetry 0.34.0.
+  A test runs the binary against a fake collector and finds its spans and logs there.
 - Container cold-start time: see [deploy.md](deploy.md).
 
 **Still unverified:**
 
 - Free custom-domain mapping on Cloud Run [T]; spec rule 2.6.2 checks it when the domain exists.
-- Crate versions not yet in use: the OpenTelemetry set [T]; checked when it is added.
 - Whether everyone in the pool has a Google account.
 
 ## Open items
