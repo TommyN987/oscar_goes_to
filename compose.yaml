@@ -9,8 +9,9 @@ services:
       POSTGRES_USER: gold_ballot
       POSTGRES_PASSWORD: gold_ballot
       POSTGRES_DB: gold_ballot
+    # Reachable from this machine only: the password below is public.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "--username=gold_ballot"]
       interval: 1s
