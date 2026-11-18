@@ -3,6 +3,7 @@
 Status: closed on 2026-11-16.
 Research: completed on 2026-11-16, recorded in [research/](research/README.md).
 Design: converged on 2026-11-16, recorded in [design.md](design.md).
+Spec: completed on 2026-11-18, recorded in [spec/](spec/README.md).
 Amended on 2026-11-16 by the design: see the two constraints marked "Amended".
 
 ## Situation

@@ -3,7 +3,8 @@
 Status: converged on 2026-11-16, in three rounds.
 Rounds 1 and 2 chose the stack (sections 1–12); round 3 chose the architecture (sections 13–14).
 Inputs: [the frame](frame.md) and [the research record](research/README.md).
-Next phase: Spec.
+Spec: completed on 2026-11-18, recorded in [spec/](spec/README.md).
+Where the spec refines a design decision, the spec is authoritative.
 
 **Origin tags:**
 [R] research record, [U] Tommy, [P] established pattern, [I] Claude's inference, [T] Claude's training knowledge, unverified against current sources.
@@ -535,8 +536,8 @@ The kit candidates were not researched; cells are [T] unless tagged:
 
 ## Open items
 
-- Whether the leaderboard shows a staleness indicator ("N of 24 categories announced, last result at HH:MM").
-  Proposed by Claude; not decided.
-- Which domain name and TLD to buy.
-- Ballot saving: per-pick autosave or a draft with a save button.
-  A product choice, handed to Spec.
+All three were settled or scheduled by the spec.
+
+- Staleness indicator: rejected (spec rule 1.4.6).
+- Domain name and TLD: still undecided; to be bought by 7 January 2027 (spec rule 2.6.4).
+- Ballot saving: each pick saves on selection (spec rule 1.2.7).
