@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+@plugin 'daisyui' {
+	themes: false;
+}
+
+/*
+ * The one theme (spec rule 4.7.1): every colour lives here, and corners are square.
+ * The colour values are provisional until they are read from the Figma file.
+ */
+@plugin 'daisyui/theme' {
+	name: 'gold-ballot';
+	default: true;
+	prefersdark: false;
+	color-scheme: light;
+
+	--color-base-100: oklch(97% 0.015 90);
+	--color-base-200: oklch(94% 0.018 90);
+	--color-base-300: oklch(89% 0.02 90);
+	--color-base-content: oklch(18% 0.01 80);
+	--color-primary: oklch(76% 0.09 85);
+	--color-primary-content: oklch(18% 0.01 80);
+	--color-secondary: oklch(30% 0.01 80);
+	--color-secondary-content: oklch(97% 0.015 90);
+	--color-accent: oklch(62% 0.1 80);
+	--color-accent-content: oklch(18% 0.01 80);
+	--color-neutral: oklch(18% 0.01 80);
+	--color-neutral-content: oklch(97% 0.015 90);
+	--color-info: oklch(55% 0.1 240);
+	--color-info-content: oklch(97% 0.015 90);
+	--color-success: oklch(50% 0.1 150);
+	--color-success-content: oklch(97% 0.015 90);
+	--color-warning: oklch(75% 0.14 75);
+	--color-warning-content: oklch(18% 0.01 80);
+	--color-error: oklch(50% 0.17 27);
+	--color-error-content: oklch(97% 0.015 90);
+
+	--radius-selector: 0rem;
+	--radius-field: 0rem;
+	--radius-box: 0rem;
+
+	--size-selector: 0.25rem;
+	--size-field: 0.25rem;
+
+	--border: 1px;
+
+	--depth: 0;
+	--noise: 0;
+}

@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = ["crates/domain", "crates/application", "crates/adapters"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
