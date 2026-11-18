@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# Starts an image and checks that it serves the SPA shell, liveness and a JSON 404 (spec rules 2.3.6, 2.4.1, 2.4.2).
+# Starts an image against the Postgres of compose.yaml, which must be running, and checks that it serves
+# the SPA shell, liveness, readiness and a JSON 404 (spec rules 2.3.6, 2.4.1, 2.4.2, 2.4.5).
 set -euo pipefail
 
 image=$1
 port=18080
 
-container=$(docker run --detach --rm --publish "$port:8080" "$image")
+# The container joins the compose network, where Postgres answers under its service name.
+container=$(docker run --detach --rm --publish "$port:8080" \
+    --network gold-ballot_default \
+    --env DATABASE_URL=postgres://gold_ballot:gold_ballot@postgres:5432/gold_ballot \
+    "$image")
 trap 'docker stop "$container" >/dev/null' EXIT
 
 for _ in $(seq 1 50); do
@@ -23,6 +28,8 @@ expect() {
 }
 
 expect "liveness answers ok" "$(curl --silent "http://localhost:$port/api/health")" '"status":"ok"'
+expect "readiness answers once the database is reachable" \
+    "$(curl --silent --output /dev/null --write-out '%{http_code}' "http://localhost:$port/api/health/ready")" "204"
 expect "a page path serves the shell" "$(curl --silent --include "http://localhost:$port/ballot")" "text/html"
 expect "the shell boots the app" "$(curl --silent "http://localhost:$port/")" "_app/immutable"
 expect "an unknown API path is a JSON 404" "$(curl --silent "http://localhost:$port/api/nope")" '"code":"not_found"'

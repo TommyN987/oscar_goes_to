@@ -31,10 +31,58 @@
           }
         }
       }
+    },
+    "/api/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness",
+        "description": "The process can reach the database, so it can serve every request (spec rule 2.4.5).",
+        "operationId": "readiness",
+        "responses": {
+          "204": {
+            "description": "The database is reachable."
+          },
+          "503": {
+            "description": "The database is not reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorCode": {
+        "type": "string",
+        "description": "A stable, machine-readable error code. Clients branch on it, so a code is never renamed.",
+        "enum": [
+          "not_found",
+          "database_unavailable"
+        ]
+      },
       "Liveness": {
         "type": "object",
         "required": [

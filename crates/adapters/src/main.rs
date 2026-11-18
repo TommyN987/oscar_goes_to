@@ -6,6 +6,7 @@ use std::process::ExitCode;
 
 use adapters::config::ServerConfig;
 use adapters::http::{self, Spa};
+use adapters::postgres;
 use tokio::net::TcpListener;
 use tokio::signal::unix::{SignalKind, signal};
 
@@ -31,11 +32,20 @@ async fn main() -> ExitCode {
 async fn serve() -> Result<(), Box<dyn Error>> {
     let config = ServerConfig::from_env()?;
     let spa = config.spa_dir.map(Spa::load).transpose()?;
-    let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, config.port))).await?;
 
-    axum::serve(listener, http::router(spa))
+    let database = postgres::connect(&config.database_url)
+        .await
+        .map_err(|error| format!("cannot connect to the database: {error}"))?;
+    postgres::migrate(&database)
+        .await
+        .map_err(|error| format!("cannot migrate the database: {error}"))?;
+
+    let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, config.port))).await?;
+    axum::serve(listener, http::router(spa, database.clone()))
         .with_graceful_shutdown(shutdown_requested())
         .await?;
+
+    database.close().await;
     Ok(())
 }
 

@@ -11,6 +11,7 @@ axum = "0.8.9"
 domain = { version = "0.1.0", path = "../domain" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros"] }
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal"] }
 tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
 utoipa = "6.0.0"

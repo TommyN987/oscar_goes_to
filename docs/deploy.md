@@ -14,6 +14,10 @@ A merge to `main` runs `.github/workflows/deploy.yml`.
 
 The service's settings live in the `deploy` recipe of the `justfile`:
 region `europe-west1`, at most one instance, scale to zero, request-based billing, 256 MiB, first-generation environment.
+The recipe also mounts the secret `database-url` as `DATABASE_URL`, so the service definition holds no secret value.
+
+Each new revision connects to Neon and applies pending migrations before it serves.
+If that fails, the revision never becomes ready and the previous one keeps serving.
 
 A deploy never changes who may call the service.
 
@@ -38,9 +42,11 @@ It needs `gcloud` logged in as a project owner, with the project as gcloud's con
 
 `scripts/bootstrap-gcp.sh` creates everything on the Google Cloud side and can be re-run safely:
 
-- the APIs: Cloud Run, Artifact Registry, IAM, IAM Credentials, Security Token Service
+- the APIs: Cloud Run, Artifact Registry, IAM, IAM Credentials, Security Token Service, Secret Manager
 - an image repository that keeps the newest five images, to stay inside the free 0.5 GB
-- `gold-ballot-run`, the account the app runs as, which holds no roles
+- `gold-ballot-run`, the account the app runs as; its only permission is to read the secret below
+- the secret `database-url`, stored in `europe-west1`: Neon's direct connection string, read from `NEON_DATABASE_URL` in the environment or in `.env`.
+  The app uses the direct string, not the pooled one: its pool holds at most five connections, and migrations need a direct connection.
 - `github-deploy`, the account GitHub deploys as: it may push images, deploy revisions, and run them as `gold-ballot-run`
 - an identity pool that lets only workflows on `main` of this repository act as `github-deploy`
 

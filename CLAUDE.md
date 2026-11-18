@@ -6,6 +6,7 @@ Rules are cited by number, such as "spec rule 2.4.2", in code comments and test 
 
 ## Commands
 
+- `just up` starts local Postgres; `just dev` and `just check` start it themselves.
 - `just dev` runs backend and frontend with reload.
 - `just check` runs every CI check. Run it before calling work done.
 - `just generate` regenerates `openapi.json` and `frontend/src/lib/api/schema.d.ts` after a handler changes.
@@ -30,7 +31,7 @@ When work is ready, Claude says which commands to run and why.
 - Use-case tests run against real Postgres. There is no in-memory storage fake.
 - Handlers stay thin. Every API error uses the one JSON shape in `crates/adapters/src/http/error.rs`.
 - OpenAPI is code-first: handlers carry `#[utoipa::path]`, and the committed `openapi.json` must match them.
-- Migrations are forward-only and expand before they contract.
+- Migrations live in `crates/adapters/migrations`, run at startup, are forward-only, and expand before they contract.
 
 ## Frontend rules (design section 14)
 
