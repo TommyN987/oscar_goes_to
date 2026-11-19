@@ -53,7 +53,7 @@ check: check-rust check-frontend check-contract
 check-rust: postgres
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --locked -- -D warnings
-    cargo test --workspace --locked
+    cargo nextest run --workspace --locked
     scripts/check-architecture.sh
 
 # Lint, type-check, component tests and the static build.
