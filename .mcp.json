@@ -3,6 +3,50 @@
     "svelte": {
       "type": "http",
       "url": "https://mcp.svelte.dev/mcp"
+    },
+    "grafana-local": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "host",
+        "-e",
+        "GRAFANA_URL=http://localhost:3000",
+        "grafana/mcp-grafana",
+        "-t",
+        "stdio",
+        "--disable-write",
+        "--usage-stats",
+        "disabled",
+        "--enabled-tools",
+        "datasource,prometheus,loki,tempo"
+      ]
+    },
+    "grafana-cloud": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "GRAFANA_URL",
+        "-e",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+        "grafana/mcp-grafana",
+        "-t",
+        "stdio",
+        "--disable-write",
+        "--usage-stats",
+        "disabled",
+        "--enabled-tools",
+        "datasource,prometheus,loki,tempo"
+      ],
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_CLOUD_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_CLOUD_VIEWER_TOKEN}"
+      }
     }
   }
 }
