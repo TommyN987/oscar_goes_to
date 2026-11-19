@@ -97,5 +97,8 @@ Done on 2026-11-18; the service has answered the public since.
 | Rollback | 15 s for `just rollback` | 2026-11-18, rehearsed from revision 2 to revision 1 |
 | Cold start, no database | 0.77 s for the first request after 17 idle minutes, of which Cloud Run logged 0.17 s in the service; warm requests took 0.17–0.27 s | 2026-11-18, from Tommy's machine, with an authenticated request |
 | Cold start, waking Neon | 1.26 s for the first readiness request after 17 idle minutes: the container starts, connects to a suspended Neon, checks migrations and runs a query; warm requests took 0.15–0.22 s | 2026-11-18 23:06 UTC, from Tommy's machine, revision 5, before telemetry was added |
+| Cold start, with telemetry | 1.88 s for the same request on revision 6, which also starts the telemetry exporters; warm requests took 0.09–0.20 s | 2026-11-19 00:25 UTC, from Tommy's machine |
+| CI duration, full M0 | 2 min 36 s on the telemetry pull request; 6 min 31 s on the first `main` run after it, with a cold dependency cache | 2026-11-18 |
 
+Each cold start is one sample, so the differences between them include the variation in Neon's wake-up time.
 Rule 6.4.6 allows 5 s, so no keep-warm ping is adopted.
