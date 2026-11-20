@@ -106,7 +106,7 @@ Reported by Tommy on 2026-11-20:
 - The Neon project is in AWS Europe Central 1 (Frankfurt).
 - The €1 billing alert exists.
 
-The `supply-chain` check was added to CI after that reading and is not among the required checks yet.
+The `supply-chain` check joined the required checks later that day.
 
 ## M0 measurements (rule 2.8.3)
 

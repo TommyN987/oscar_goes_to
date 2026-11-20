@@ -98,10 +98,14 @@ Tommy accepted these on 2026-11-20. [The plan](../plan.md) lists them as decisio
   Rule 5.1 asks for dumps from 21 January, and rule 5.6 for a run each December.
 - **2.5.8** fell from SHOULD to MAY: Render is pursued only if proven necessary.
 
-Tommy accepted one more on the same day, while plan package P1 was built:
+Tommy accepted or ruled three more on the same day, while plan package P1 was built:
 
 - **2.1.8** names the rule files in `.claude/rules/`, which load with the files they govern.
   It had asked `CLAUDE.md` itself to list the architecture rules, which would state them twice.
+- **2.1.4** is done when the `.env.example` test exists and GitHub reports push protection as on.
+  Its old condition, a rejected token commit, became the WONT rule **2.1.9**: a made-up token is not rejected, and a real one is not worth the test.
+- **2.5.6** is done when the €1 budget exists and emails an address Tommy reads.
+  It had asked for a test notification, which a budget sends only when spend crosses a threshold.
 
 ## Open, outside the spec
 

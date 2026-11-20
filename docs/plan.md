@@ -193,7 +193,7 @@ Due 7 March 2027, except where an item says otherwise.
 
 | # | Level | Item | Rules | Done when |
 |---|---|---|---|---|
-| P12.1 | WONT | The 19 WONT rules stay absent | 1.1.9, 1.3.8, 1.4.6, 1.4.7, 1.5.4, 1.6.8, 2.5.9, 2.7.9, 3.1.9, 4.2.19, 4.3.9, 4.3.10, 4.4.7, 4.4.8, 4.5.9, 4.6.3, 4.7.6, 6.1.3, 6.6.4 | The `/finish-slice` review reports none introduced |
+| P12.1 | WONT | The 20 WONT rules stay absent | 1.1.9, 1.3.8, 1.4.6, 1.4.7, 1.5.4, 1.6.8, 2.1.9, 2.5.9, 2.7.9, 3.1.9, 4.2.19, 4.3.9, 4.3.10, 4.4.7, 4.4.8, 4.5.9, 4.6.3, 4.7.6, 6.1.3, 6.6.4 | The `/finish-slice` review reports none introduced |
 | P12.2 | MUST | Bars each page slice cites | 6.1.1, 6.3.3, 6.4.5, 4.8.0.2 | Each page has loading, empty and error component tests, and its tally cites the bars |
 
 ## Couplings
@@ -239,6 +239,7 @@ If P3.6 is not green by 20 December, P1.5, P3.9 and P5.3 leave M1 first.
 ## Coverage on 2026-11-20
 
 A script compared the items above with the rule tables in `docs/spec/`: 288 rules, each owned once, each at its item's level.
+Rule 2.1.9, a WONT, was added later that day and is counted below, which makes 289.
 The script was not kept.
 
 | Disposition | Rules |
@@ -247,7 +248,7 @@ The script was not kept.
 | MUST, owned by an open item | 211 |
 | SHOULD, owned by an open item | 20 |
 | MAY, unplanned (P11.1) | 6 |
-| WONT, standing (P12.1) | 19 |
+| WONT, standing (P12.1) | 20 |
 
 **Already met:** 2.1.2, 2.1.3, 2.1.6, 2.1.7, 2.2.1, 2.2.2, 2.2.4, 2.3.2, 2.3.3, 2.3.8, 2.4.1–2.4.5, 2.4.7, 2.5.1–2.5.3, 2.5.5, 2.5.7, 2.7.1, 2.7.4, 2.7.5, 2.7.7, 2.7.8, 2.8.1–2.8.4, 4.8.0.1, 4.8.0.3.
 

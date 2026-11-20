@@ -11,13 +11,18 @@ Done when a merge to main reaches the public URL through CI, and its trace shows
 | 2.1.1 | MUST | One Cargo workspace at the root with `crates/domain`, `crates/application`, `crates/adapters` (a library plus the binary target); `frontend/`; `seasons/`; `docs/` | `cargo metadata` lists exactly those three crates | D, U |
 | 2.1.2 | MUST | CI asserts the manifests: `domain` has no IO, async-runtime or serialization dependency; `application` depends on no HTTP or SQL crate | Adding sqlx to `domain` fails CI | D, C |
 | 2.1.3 | MUST | Toolchains are pinned: Rust, Node, pnpm, and TypeScript 6.x | CI and a fresh clone resolve identical versions | D |
-| 2.1.4 | MUST | No secret enters the repo; `.env.example` names every variable; push protection is on | A commit containing a token is rejected | C |
+| 2.1.4 | MUST | No secret enters the repo; `.env.example` names every variable; push protection is on | A test fails when `.env.example` omits a variable, and GitHub reports push protection as on | C, U |
 | 2.1.5 | MUST | `main` accepts changes only through pull requests with green checks | A direct push to `main` is rejected | F, C |
 | 2.1.6 | MUST | A README takes a fresh clone to a running local app | Following only the README works on a clean checkout | C |
 | 2.1.7 | MUST | The repo is MIT-licensed | A `LICENSE` file holds the MIT text | U |
 | 2.1.8 | SHOULD | `CLAUDE.md` points to rule files in `.claude/rules/` that state the architecture rules from design sections 11, 13 and 14 | The rule files list them, and `CLAUDE.md` names their folder | C |
+| 2.1.9 | WONT | A demonstrated rejection of a committed token | No test commit carries a real token | U |
 
 Rule 2.1.5 requires checks, not approvals: one GitHub account cannot approve its own pull request.
+
+Rule 2.1.9 replaces the old done-condition of 2.1.4.
+Push protection stops only tokens in a known provider's format, and GitGuardian checks every pull request.
+A made-up value passed both on 2026-11-20; showing a rejection would take a real token, which is more than this project needs.
 
 ## 2.2 Local development
 
@@ -64,7 +69,7 @@ Rule 2.1.5 requires checks, not approvals: one GitHub account cannot approve its
 | 2.5.3 | MUST | Runtime secrets come from the platform's secret store | The service definition contains no secret value | C |
 | 2.5.4 | MUST | Neon hosts one EU project, and the app's pool holds at most five connections | The pool size is visible in configuration | R, C |
 | 2.5.5 | MUST | Rollback to the previous revision is one documented command | It has been rehearsed once at M0 | R |
-| 2.5.6 | MUST | A billing alert fires at €1 | The alert exists and a test notification arrived | D |
+| 2.5.6 | MUST | A billing alert fires at €1 | The budget exists at €1 and emails an address Tommy reads | D, U |
 | 2.5.7 | MUST | No automatic deploy happens from 8 to 15 March 2027 | A merge inside the window does not deploy | D |
 | 2.5.8 | MAY | The same image runs on Render; pursued only if proven necessary | It was deployed there once and answered health | D, U |
 | 2.5.9 | WONT | A separate staging environment in v1 | Only one environment exists | U |
