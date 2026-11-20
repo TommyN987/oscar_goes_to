@@ -44,7 +44,7 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | 4.2.8 | MUST | The lock notice shows weekday, date, time and zone in the viewer's zone, plus a countdown based on server time | With server time 2 d 4 h 18 min before lock it reads "02d 04h 18m" | G, U |
 | 4.2.9 | MUST | Previous, Next and "Review my ballot" move between categories and the review page | Next on the last category opens "Your ballot" | G, C |
 | 4.2.10 | MUST | "Your ballot" has two tabs split by will-win pick; each row shows category, will-win, should-win or a dash, and Edit | A category with only a should-win pick sits under Unpicked and shows it | G, C |
-| 4.2.11 | MUST | A summary shows will-win picks out of the total, and the favourites count | The fixture reads "8 predictions saved · 3 favorites" | G |
+| 4.2.11 | MUST | A summary shows will-win picks out of the total, and the favorites count | The fixture reads "8 predictions saved · 3 favorites" | G |
 | 4.2.12 | MUST | "Finish my ballot" opens the first category without a will-win pick, and hides when none remains | A complete ballot shows no such button | G, C |
 | 4.2.13 | MUST | A ballot with no picks shows the invitation and the how-it-works steps | Zero picks renders that state | G |
 | 4.2.14 | MUST | In Upcoming the page shows a notice and no toggles | A season without nominees renders the notice | C |
@@ -120,7 +120,7 @@ Versioning is unnecessary because one image ships client and server together.
 
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
-| 4.7.1 | MUST | One custom daisyUI theme holds the palette and square corners | No colour literal appears outside the theme | G, D |
+| 4.7.1 | MUST | One custom daisyUI theme holds the palette and square corners | No color literal appears outside the theme | G, D |
 | 4.7.2 | MUST | Two type families, a display serif and a UI sans, both free-licensed and self-hosted | The pages request no third-party font host | G, C |
 | 4.7.3 | MUST | Layouts follow the file at 390, 768 and 1440 | Screenshots at those widths match the frames' structure | G |
 | 4.7.4 | MUST | Ceremony number and date come from the seed | Seeding the 99th changes the nav label and the large numeral | G, C |
@@ -135,7 +135,7 @@ Versioning is unnecessary because one image ships client and server together.
 - **Six screens:** create account, log in, make your picks, your ballot, ballot locked, empty ballot.
 - **Three widths:** 1440, 768 and 390.
 - **Sample data:** the 98th ceremony, March 15, 2026, 7:00 PM ET.
-- The file defines no variables, so colour and font names were not read from it.
+- The file defines no variables, so color and font names were not read from it.
 - About sixty stray one-character text layers sit on the canvas outside the frames.
 
 ## Notes

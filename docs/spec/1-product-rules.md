@@ -4,7 +4,7 @@ Part of [the specification](README.md). Levels and source codes are defined ther
 
 Done when every MUST rule below has a domain test carrying its number (rule 6.6.1).
 
-## 1.1 Season and catalogue
+## 1.1 Season and catalog
 
 | # | Level | Rule | Done when | Source |
 |---|---|---|---|---|

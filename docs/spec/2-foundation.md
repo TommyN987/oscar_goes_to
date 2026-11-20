@@ -38,7 +38,7 @@ Rule 2.1.5 requires checks, not approvals: one GitHub account cannot approve its
 | 2.3.4 | MUST | End-to-end: Playwright runs against a test image built with fake identity | A sign-in-and-pick journey passes | D |
 | 2.3.5 | MUST | Release gate: the release image is built without fake identity, and CI probes it | The fake sign-in route returns 404 on the release image | D |
 | 2.3.6 | MUST | Release smoke: the release image itself serves the shell, health, and the redirect to Google | All three pass on the image that will deploy | C |
-| 2.3.7 | SHOULD | Supply chain: advisory and licence checks for Rust and npm, plus an update bot | A dependency with a known advisory fails CI | C |
+| 2.3.7 | SHOULD | Supply chain: advisory and license checks for Rust and npm, plus an update bot | A dependency with a known advisory fails CI | C |
 | 2.3.8 | MUST | No workflow exposes secrets to fork pull requests | No workflow uses `pull_request_target` | C |
 | 2.3.9 | SHOULD | A full run takes under 10 minutes | The median of the last ten runs is under 10 minutes | R, C |
 

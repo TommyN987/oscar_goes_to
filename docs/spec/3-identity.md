@@ -13,7 +13,7 @@ Done when a new Google user signs in on the deployed app and stays signed in aft
 | 3.1.3 | MUST | First sign-in ends on a "choose your display name" step, prefilled from Google | A second player with the same Google name must choose another | C |
 | 3.1.4 | MUST | Later sign-ins match on subject ID, refresh the stored email, and never touch the display name | A changed Google email updates the row and keeps the name | C |
 | 3.1.5 | MUST | A blocked account gets a plain refusal page | A removed player's sign-in ends there | U |
-| 3.1.6 | MUST | Cancelled consent, a Google error and an unverified email each render a message and a retry | Each path has a test | C |
+| 3.1.6 | MUST | Canceled consent, a Google error and an unverified email each render a message and a retry | Each path has a test | C |
 | 3.1.7 | MUST | The post-sign-in return path accepts only same-origin paths | An absolute URL in the return parameter is ignored | C |
 | 3.1.8 | MUST | The Google consent screen is published to production under the name "The Gold Ballot" | An account on no test list signs in | R, C |
 | 3.1.9 | WONT | Other providers, passwords, emailed codes | Only one sign-in button exists | D, U |

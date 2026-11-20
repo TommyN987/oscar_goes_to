@@ -40,7 +40,7 @@ The files hold the final state of each rule, with all amendments applied.
 | 4.4 | Leaderboard and statistics | MUST | 4.2, 4.3, 1.4, 1.5 | M2 | The leaderboard equals a hand-computed fixture, including a tie | same |
 | 4.5 | App shell | MUST | 3 | M1 | A signed-out visit ends on the sign-in page, and navigation follows the phase | same |
 | 4.6 | API surface | MUST | 4.1–4.5 | grows with each | `openapi.json` lists exactly the specified operations | same |
-| 4.7 | Visual system | MUST | nothing | M0 onward | One theme holds the palette, and no colour literal sits outside it | same |
+| 4.7 | Visual system | MUST | nothing | M0 onward | One theme holds the palette, and no color literal sits outside it | same |
 | 4.8 | Screen specifications | MUST | 4.2–4.5, 3 | per screen | Each screen has Figma frames before its slice is coded | [4.8-screens.md](4.8-screens.md) |
 | 5 | Operations | SHOULD | 2 | M2 | One restore from backup has been rehearsed | [5-operations.md](5-operations.md) |
 | 6 | Quality bars | MUST | cuts across 3 and 4 | each milestone | Each feature slice cites the bars it meets | [6-quality-bars.md](6-quality-bars.md) |
@@ -78,7 +78,7 @@ The ceremony is on 14 March 2027 at 7 p.m. ET; picks lock then, expected 2027-03
 
 Four rules were aligned so the recorded spec does not contradict itself.
 
-- **4.3.8** was SHOULD in round 4; round 6 accepted the same behaviour as MUST in 4.8.7.1. It is recorded as MUST.
+- **4.3.8** was SHOULD in round 4; round 6 accepted the same behavior as MUST in 4.8.7.1. It is recorded as MUST.
 - **4.6.1** listed the API operations before the blocked list existed. "List blocked accounts" and "unblock" were added, tied to 4.8.8.4 and 4.8.8.5.
 - **3.1.8** named the consent screen "Guess the Oscars with Tommy" in round 3. It is recorded as "The Gold Ballot", the later product name.
 - **1.2.4 and 6.3.1** assumed radio inputs and a clear control. They are recorded in their round-5 form: toggles, pressed again to clear.
