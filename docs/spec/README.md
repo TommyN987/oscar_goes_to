@@ -2,7 +2,7 @@
 
 Status: complete on 2026-11-18, after six rounds of dialogue.
 Inputs: [the frame](../frame.md), [the research record](../research/README.md) and [the design](../design.md).
-Next phase: Figma frames for the undrawn screens, then Code.
+Next phase: Code. The Figma frames for the screens in section 4.8 were added on 2026-11-19.
 
 Product name: **The Gold Ballot**. Tagline: "Guess the Oscars with Tommy".
 
@@ -21,7 +21,8 @@ The files hold the final state of each rule, with all amendments applied.
 **Sources**
 
 - **F** frame. **D** design. **R** research. **U** Tommy's ruling.
-- **G** seen in Tommy's Figma file ("Guess the Oscars with Tommy", read on 2026-11-17, not edited).
+- **G** seen in the original drafts of Tommy's Figma file ("Guess the Oscars with Tommy"), as read on 2026-11-17.
+  Those drafts now sit on the file's Archive page.
 - **O** observed on Tommy's machine.
 - **C** proposed by Claude and accepted by Tommy.
 - **T** Claude's training knowledge, unverified against current sources.
@@ -87,7 +88,8 @@ Four rules were aligned so the recorded spec does not contradict itself.
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.
 - **Accounts:** Google Cloud with billing, Neon, Grafana Cloud, the Google OAuth client, and `gcloud` on Tommy's machine (O: missing on 2026-11-16).
-- **Figma:** frames for the screens in 4.8 before their slices are coded (rule 4.8.0.1).
+- **Figma:** the frames for the screens in 4.8 exist since 2026-11-19 (rule 4.8.0.1).
+  They are plain layers bound to variables and text styles; turning them into components is still open.
 - **Slices:** who writes which.
 - **Unexamined since research:** GDPR obligations and trademark exposure.
 

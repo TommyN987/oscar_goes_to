@@ -27,6 +27,11 @@ paths:
 - Native elements come first.
 - Every colour lives in the one theme in `src/routes/layout.css`; no colour literal anywhere else.
 
+## Copy
+
+- User-facing text uses American spelling: "favorite", "color", "canceled". This covers labels, messages, page titles and alt text, on signed-out pages too, and UI copy quoted in `docs/spec/` or drafted in `design/prototype/`.
+- The rule is about user-facing language only. Comments and research notes may use British spelling.
+
 ## Tests
 
 - Leaf components are tested in Vitest browser mode with props only, in a `*.svelte.spec.ts` file beside the component.

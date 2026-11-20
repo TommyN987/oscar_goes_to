@@ -57,6 +57,7 @@ A merge to `main` deploys to Cloud Run. [docs/deploy.md](docs/deploy.md) covers 
 | `frontend` | The SvelteKit single-page app |
 | `openapi.json` | The API contract, generated from the handlers |
 | `docs` | Frame, research, design and specification |
+| `design` | The static prototype the Figma frames were captured from, and the scripts that set up the Figma file |
 
 ## Licence
 
