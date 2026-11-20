@@ -1,5 +1,9 @@
 //! The one JSON shape every API error shares (spec rule 6.4.1).
 
+use std::error::Error;
+
+use application::session::{NotSignedIn, SignOutError};
+use application::storage::StorageError;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -13,6 +17,8 @@ pub enum ErrorCode {
     NotFound,
     PayloadTooLarge,
     DatabaseUnavailable,
+    NotSignedIn,
+    Internal,
 }
 
 impl ErrorCode {
@@ -21,6 +27,8 @@ impl ErrorCode {
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
             Self::DatabaseUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            Self::NotSignedIn => StatusCode::UNAUTHORIZED,
+            Self::Internal => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -43,6 +51,29 @@ impl ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         (self.code.status(), Json(self)).into_response()
+    }
+}
+
+impl From<NotSignedIn> for ApiError {
+    fn from(_: NotSignedIn) -> Self {
+        Self::new(ErrorCode::NotSignedIn, "Sign in to continue.")
+    }
+}
+
+/// The cause goes to the log, in the error's message; the client learns only that the failure is not its own.
+impl From<StorageError> for ApiError {
+    fn from(error: StorageError) -> Self {
+        tracing::error!(error = &error as &dyn Error, "storage failed");
+        Self::new(ErrorCode::Internal, "Something went wrong. Try again.")
+    }
+}
+
+impl From<SignOutError> for ApiError {
+    fn from(error: SignOutError) -> Self {
+        match error {
+            SignOutError::NotSignedIn(refusal) => refusal.into(),
+            SignOutError::Storage(failure) => failure.into(),
+        }
     }
 }
 

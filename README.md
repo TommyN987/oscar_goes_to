@@ -28,6 +28,16 @@ The Vite dev server reloads the frontend and proxies `/api` to the backend on po
 `just dev` first starts Postgres and a local Grafana stack in Docker (`just up`); `just down` stops them and discards their data.
 The backend's traces, logs and metrics appear in Grafana at <http://localhost:3000>.
 
+`just dev` builds the backend with fake identity, so you sign in as anyone you make up, without Google:
+
+```sh
+curl --include --request POST --header 'Content-Type: application/json' \
+    --data '{"subject":"pat","email":"pat@example.com","name":"Pat Player"}' \
+    http://localhost:8080/api/fake-identity/sign-in
+```
+
+The answer sets the session cookie. The release image has no such route, and a build that has it refuses to start on Cloud Run.
+
 ## Check your work
 
 ```sh

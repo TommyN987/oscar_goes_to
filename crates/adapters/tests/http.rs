@@ -2,9 +2,12 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use adapters::http::{MAX_REQUEST_BODY_BYTES, Spa, router};
+use adapters::clock::SystemClock;
+use adapters::http::{ApiState, MAX_REQUEST_BODY_BYTES, Spa, router};
 use adapters::telemetry::Telemetry;
+use application::admin_emails::AdminEmails;
 use axum::Router;
 use axum::body::Body;
 use axum::http::header::{
@@ -43,6 +46,11 @@ async fn body_json(response: Response<Body>) -> serde_json::Value {
     serde_json::from_str(&body_text(response).await).unwrap()
 }
 
+/// What the router needs besides a database; no test in this file signs in.
+fn state(database: PgPool) -> ApiState {
+    ApiState::new(database, Arc::new(SystemClock), AdminEmails::none())
+}
+
 /// A pool pointed at a port where no Postgres listens. It connects only when a query runs.
 fn unreachable_database() -> PgPool {
     PgPoolOptions::new()
@@ -64,7 +72,7 @@ fn built_spa(test_name: &str) -> Spa {
 #[tokio::test]
 async fn rule_2_4_5_liveness_answers_without_the_database() {
     let response = get(
-        router(None, unreachable_database(), Telemetry::disabled()),
+        router(None, state(unreachable_database()), Telemetry::disabled()),
         "/api/health",
     )
     .await;
@@ -76,7 +84,7 @@ async fn rule_2_4_5_liveness_answers_without_the_database() {
 #[tokio::test]
 async fn rule_2_4_5_readiness_fails_without_the_database() {
     let response = get(
-        router(None, unreachable_database(), Telemetry::disabled()),
+        router(None, state(unreachable_database()), Telemetry::disabled()),
         "/api/health/ready",
     )
     .await;
@@ -87,7 +95,11 @@ async fn rule_2_4_5_readiness_fails_without_the_database() {
 
 #[sqlx::test]
 async fn rule_2_4_5_readiness_answers_when_the_database_is_reachable(database: PgPool) {
-    let response = get(router(None, database, Telemetry::disabled()), "/api/health/ready").await;
+    let response = get(
+        router(None, state(database), Telemetry::disabled()),
+        "/api/health/ready",
+    )
+    .await;
 
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }
@@ -97,7 +109,7 @@ async fn rule_2_4_2_an_unknown_api_path_is_a_json_404() {
     let response = get(
         router(
             Some(built_spa("unknown_api_path")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/api/nope",
@@ -114,7 +126,7 @@ async fn rule_2_4_2_an_unknown_non_api_path_is_the_shell() {
     let response = get(
         router(
             Some(built_spa("unknown_non_api_path")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/ballot",
@@ -131,7 +143,7 @@ async fn rule_2_4_7_the_shell_is_never_cached() {
     let response = get(
         router(
             Some(built_spa("shell_cache")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/",
@@ -147,7 +159,7 @@ async fn rule_2_4_7_a_hashed_asset_is_cached_immutably() {
     let response = get(
         router(
             Some(built_spa("hashed_asset_cache")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/_app/immutable/entry.abc123.js",
@@ -163,7 +175,7 @@ async fn a_missing_hashed_asset_is_a_404_and_is_not_cached() {
     let response = get(
         router(
             Some(built_spa("missing_hashed_asset")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/_app/immutable/gone.js",
@@ -179,7 +191,7 @@ async fn a_plain_file_is_served_as_itself() {
     let response = get(
         router(
             Some(built_spa("plain_file")),
-            unreachable_database(),
+            state(unreachable_database()),
             Telemetry::disabled(),
         ),
         "/robots.txt",
@@ -202,7 +214,7 @@ async fn rule_6_5_1_every_response_carries_the_security_headers() {
         let response = get(
             router(
                 Some(built_spa("security_headers")),
-                unreachable_database(),
+                state(unreachable_database()),
                 Telemetry::disabled(),
             ),
             path,
@@ -219,7 +231,7 @@ async fn rule_6_5_1_every_response_carries_the_security_headers() {
 #[tokio::test]
 async fn rule_6_5_2_an_oversize_body_is_refused_with_413() {
     let response = post_body_of(
-        router(None, unreachable_database(), Telemetry::disabled()),
+        router(None, state(unreachable_database()), Telemetry::disabled()),
         "/api/health",
         MAX_REQUEST_BODY_BYTES + 1,
     )
@@ -232,7 +244,7 @@ async fn rule_6_5_2_an_oversize_body_is_refused_with_413() {
 #[tokio::test]
 async fn rule_6_5_2_a_body_at_the_limit_is_not_refused_for_its_size() {
     let response = post_body_of(
-        router(None, unreachable_database(), Telemetry::disabled()),
+        router(None, state(unreachable_database()), Telemetry::disabled()),
         "/api/health",
         MAX_REQUEST_BODY_BYTES,
     )

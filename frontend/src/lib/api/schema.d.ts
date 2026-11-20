@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who am I
+         * @description The signed-in player, and whether the configuration names them an admin (spec rule 3.3.4).
+         */
+        get: operations["who_am_i"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out
+         * @description Ends every session of the signed-in player, on every device (spec rule 3.2.5).
+         */
+        post: operations["sign_out"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -56,10 +96,21 @@ export interface components {
          * @description A stable, machine-readable error code. Clients branch on it, so a code is never renamed.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "payload_too_large" | "database_unavailable";
+        ErrorCode: "not_found" | "payload_too_large" | "database_unavailable" | "not_signed_in" | "internal";
         Liveness: {
             /** @example ok */
             status: string;
+        };
+        /** @description The signed-in player, as only that player sees themself. */
+        WhoAmI: {
+            /** @description Absent until the player has chosen one. */
+            display_name?: string | null;
+            email: string;
+            is_admin: boolean;
+            /** Format: int64 */
+            player_id: number;
+            /** @description The name to offer while the player has chosen none. */
+            suggested_name?: string | null;
         };
     };
     responses: never;
@@ -108,6 +159,80 @@ export interface operations {
             };
             /** @description The database is not reachable. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    who_am_i: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The signed-in player. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhoAmI"];
+                };
+            };
+            /** @description The request carries no live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description The server failed. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    sign_out: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The player is signed out everywhere. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request carries no live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description The server failed. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

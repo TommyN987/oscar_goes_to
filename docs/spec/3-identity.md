@@ -45,7 +45,7 @@ Done when a new Google user signs in on the deployed app and stays signed in aft
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
 | 3.4.1 | MUST | The fake adapter exists only under a compile-time feature | Covered by 2.3.5 | D |
-| 3.4.2 | MUST | A binary built with the feature refuses to start under production configuration | It exits non-zero | C |
+| 3.4.2 | MUST | A binary built with the feature refuses to start under production configuration, which is Cloud Run's `K_SERVICE` variable being set | It exits non-zero | C |
 | 3.4.3 | MUST | The deploy job deploys only the image digest the release job produced | The workflow passes a digest and uses no mutable tag | C |
 
 ## 3.5 Account

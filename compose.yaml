@@ -5,6 +5,9 @@ services:
   postgres:
     # The major version Neon runs in production.
     image: postgres:18
+    # Durability is off, because this data is disposable: every test creates and drops a database of its own,
+    # and each of those would otherwise wait for a checkpoint to reach the disk.
+    command: ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"]
     environment:
       POSTGRES_USER: gold_ballot
       POSTGRES_PASSWORD: gold_ballot

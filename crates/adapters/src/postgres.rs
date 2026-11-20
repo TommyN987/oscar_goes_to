@@ -1,4 +1,6 @@
-//! The Postgres adapter: the connection pool, the schema migrations, and the reachability check.
+//! The Postgres adapter: the connection pool, the schema migrations, the reachability check, and storage.
+
+mod identity;
 
 use std::time::Duration;
 
@@ -15,6 +17,18 @@ pub const MAX_CONNECTIONS: u32 = 5;
 const ACQUIRE_TIMEOUT: Duration = Duration::from_secs(5);
 
 static MIGRATOR: Migrator = sqlx::migrate!();
+
+/// The storage ports, kept in Postgres.
+#[derive(Clone)]
+pub struct PostgresStorage {
+    database: PgPool,
+}
+
+impl PostgresStorage {
+    pub const fn new(database: PgPool) -> Self {
+        Self { database }
+    }
+}
 
 /// Opens the connection pool. Fails if the database cannot be reached, so the server never starts without it.
 pub async fn connect(database_url: &DatabaseUrl) -> Result<PgPool, sqlx::Error> {

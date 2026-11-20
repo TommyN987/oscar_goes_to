@@ -5,6 +5,11 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+# Sign-in without Google, for development and the end-to-end tests. The release image is built without it,
+# and a binary built with it refuses to start on Cloud Run (spec rules 3.4.1 and 3.4.2).
+fake-identity = []
+
 [dependencies]
 # The four opentelemetry crates and tracing-opentelemetry are pinned and must be upgraded together,
 # in one pull request (spec rule 2.7.8). tracing-opentelemetry runs one minor version ahead.
@@ -17,7 +22,7 @@ opentelemetry-otlp = { version = "=0.33.1", default-features = false, features =
 opentelemetry_sdk = "=0.33.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
-sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros"] }
+sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros", "time"] }
 thiserror.workspace = true
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal"] }
 tower-http = { version = "0.7.1", features = ["fs", "set-header"] }

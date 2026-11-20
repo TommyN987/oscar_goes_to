@@ -127,6 +127,11 @@ Tommy accepted three more on the same day, before plan package P3 was built:
 - **3.2.3** ends only the session the browser presented, so a player may be signed in on several devices.
 - **3.2.5** says "all of that player's sessions": signing out on one device signs out every device.
 
+Tommy accepted one more on the same day, before plan item P3.2 was built:
+
+- **3.4.2** defines production configuration as Cloud Run's `K_SERVICE` variable being set.
+  The platform sets it on every revision, so no deploy can leave it out.
+
 ## Open, outside the spec
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.

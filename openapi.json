@@ -56,6 +56,83 @@
           }
         }
       }
+    },
+    "/api/session": {
+      "get": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Who am I",
+        "description": "The signed-in player, and whether the configuration names them an admin (spec rule 3.3.4).",
+        "operationId": "who_am_i",
+        "responses": {
+          "200": {
+            "description": "The signed-in player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhoAmI"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request carries no live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/sign-out": {
+      "post": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Sign out",
+        "description": "Ends every session of the signed-in player, on every device (spec rule 3.2.5).",
+        "operationId": "sign_out",
+        "responses": {
+          "204": {
+            "description": "The player is signed out everywhere."
+          },
+          "401": {
+            "description": "The request carries no live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -81,7 +158,9 @@
         "enum": [
           "not_found",
           "payload_too_large",
-          "database_unavailable"
+          "database_unavailable",
+          "not_signed_in",
+          "internal"
         ]
       },
       "Liveness": {
@@ -93,6 +172,41 @@
           "status": {
             "type": "string",
             "example": "ok"
+          }
+        }
+      },
+      "WhoAmI": {
+        "type": "object",
+        "description": "The signed-in player, as only that player sees themself.",
+        "required": [
+          "player_id",
+          "email",
+          "is_admin"
+        ],
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent until the player has chosen one."
+          },
+          "email": {
+            "type": "string"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "player_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "suggested_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name to offer while the player has chosen none."
           }
         }
       }
