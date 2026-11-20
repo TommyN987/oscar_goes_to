@@ -16,7 +16,7 @@ The others gain their test in the slice that builds them, by M2.
 | 1.1.4 | MUST | The current season is the one with the highest ceremony number | With two seasons seeded, the app shows the higher | C |
 | 1.1.5 | MUST | A season's phase is derived, never stored: Upcoming (no nominees), Open, Locked, Complete (every category has a result) | A domain test fixes the phase for each combination of inputs | C |
 | 1.1.6 | MUST | The lock instant can be changed by re-importing the seed, and a change never alters stored picks | Re-import with a new lock instant changes the phase and leaves picks untouched | F, C |
-| 1.1.7 | MUST | Re-import matches categories and nominees by stable keys | A corrected nominee label keeps its existing picks | C |
+| 1.1.7 | MUST | Re-import matches films, categories and nominees by stable keys | A corrected film title or credit keeps the existing picks | C, U |
 | 1.1.8 | MUST | Import refuses to remove a nominee that has picks, unless forced | Such an import fails without the force flag | C |
 | 1.1.9 | WONT | Posters or film metadata in v1 | No request leaves the app for film data | C, R |
 
@@ -91,7 +91,7 @@ The others gain their test in the slice that builds them, by M2.
 - **Removal differs from deletion.**
   Self-deletion (1.6.6) is a clean erase, and that person may return.
   Removal (1.6.7) blocks the account, because a removed player who can sign straight back in has not been removed.
-- **Rules 1.1.7 and 1.1.8 exist for label fixes.**
+- **Rules 1.1.7 and 1.1.8 exist for corrections.**
   A typo fix or a rescinded nomination must not silently orphan picks.
 - **Open sign-up needed moderation.**
   Unique names (1.6.2) and removal (1.6.7) are the minimum.

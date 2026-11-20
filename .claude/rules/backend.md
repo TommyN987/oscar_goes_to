@@ -22,7 +22,7 @@ paths:
 ## Errors
 
 - An error type derives `thiserror::Error`, with one `#[error("...")]` message per variant; an error gets no hand-written `Display` or `Error` impl.
-- A conversion from another error type is a `#[from]` variant, not a `map_err` at each call site.
+- Where an error only wraps another, the conversion is a `#[from]` variant; `map_err` is for adding context the source lacks, such as the variable's name.
 - `thiserror` is declared once, under `[workspace.dependencies]`. It is the only run-time dependency of `domain`.
 
 ## HTTP

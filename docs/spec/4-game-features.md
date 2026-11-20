@@ -18,10 +18,10 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
-| 4.1.1 | MUST | Each season is one TOML file in `seasons/`: ceremony number, lock instant with offset, categories in order, nominees with a primary and optional secondary label | The file for the 99th parses, and a malformed file fails naming the line | D, U |
-| 4.1.2 | MUST | Categories and nominees carry author-chosen keys, unique within their parent | Changing a label keeps picks; changing a key counts as remove plus add | C |
+| 4.1.1 | MUST | Each season is one TOML file in `seasons/`: ceremony number, lock instant with offset, films with a title, categories in order with what leads their rows, and nominees that each name a film, optionally who is credited, and optionally a title of their own | The file for the 99th parses, and a malformed file fails naming the line | D, U |
+| 4.1.2 | MUST | Films, categories and nominees carry author-chosen keys, made of lowercase letters, digits and hyphens, and unique within their parent | Changing a title, a name or a credit keeps picks; changing a key counts as remove plus add | C, U |
 | 4.1.3 | MUST | Import is a CLI command and one transaction | An import that fails halfway changes nothing | D, C |
-| 4.1.4 | MUST | Import validates before writing: unique keys, non-empty labels, at least one category, and nominees in every category or in none | Each violation exits non-zero with a named error | C, U |
+| 4.1.4 | MUST | Import validates before writing: well-formed, unique keys; non-empty names, titles and credits; at least one category; nominees in every category or in none; every nominee's film listed and every listed film used; a credit wherever the category leads with it | Each violation exits non-zero with a named error | C, U |
 | 4.1.5 | MUST | Import has a dry run that prints what would be added, changed and removed | A dry run writes nothing | C |
 | 4.1.6 | MUST | Removing a category or nominee that has picks or results needs a force flag and reports the count deleted | Without the flag the import fails | C |
 | 4.1.7 | MUST | A file may list categories with no nominees | That season imports and is in phase Upcoming | C |
@@ -29,6 +29,7 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | 4.1.9 | MUST | Import needs no deploy | A lock-instant change is merged and imported inside the freeze window | C |
 | 4.1.10 | MUST | Postgres itself enforces rules 1.2.1 and 1.2.2 | A direct SQL insert breaking either is rejected | C |
 | 4.1.11 | SHOULD | The file may carry the nominations date for display | The Upcoming page shows it | C |
+| 4.1.12 | MUST | A nominee shows as two lines derived from its parts: the headline is its own title if it has one, otherwise the film or the credit, as its category leads; the second line holds the rest, the film first, joined by " · "; a place that names a nominee on one line uses the headline | A test fixes the lines of an acting, a craft, an international and a song nominee | C, U |
 
 ## 4.2 Ballot
 
@@ -161,6 +162,26 @@ This describes the original drafts, which now sit on the file's Archive page.
 - **A lock change on ceremony day must not need a deploy.**
   The Academy's start time is "subject to change", and the freeze in 2.5.7 blocks deploys that week.
   Rule 4.1.9 keeps import separate from deploy for that reason.
+- **A nominee is a film, sometimes with a credit and a title of its own (4.1.1).**
+  Every nomination is for exactly one film, so films are listed once per season and shared by key.
+  `credited` is free text for whoever is named: one actor, two directors, a lyricist and a composer, or a country.
+  It is left out where a guesser would not know the names, as in the craft categories.
+  `title` is for a nominated work that is not the film itself, which today means a song.
+  A category says what leads its rows: the film, or who is credited.
+- **A person is not modeled.**
+  The credited parties are too varied to share one shape, and no rule looks at them.
+- **The two lines of a row are derived, not typed (4.1.12).**
+  Composing them is presentation, so the HTTP adapter does it when it builds the season response.
+  The domain only knows what a category leads with.
+  Acting reads "Michelle Yeoh" over the film; Best Sound reads the film alone; a song reads its title over the film and its writers.
+  The first seed format had a primary and a secondary label per nominee.
+  The seed's author then composed every row by hand, retyped each film title per nomination, and the app could not tell which line was the film.
+- **Two nominees of one category can share a headline.**
+  One person nominated twice (1.1.3) gives two rows that lead with the same name.
+  How a place that names a nominee on one line, such as the toggle's name in rule 6.3.1, tells the two apart is presentation.
+  It is not decided yet; it is decided when the ballot page is built (plan item P6.3).
+- **A key is made of lowercase letters, digits and hyphens (4.1.2).**
+  Keys are written in the seed file and end up in URLs, since each category has its own (4.2.1).
 - **Importing at startup was rejected.**
   A rollback to an older revision would re-import the older seed and silently revert the lock time.
 - **The leaderboard score has no denominator.**

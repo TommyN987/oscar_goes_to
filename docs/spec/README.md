@@ -35,7 +35,7 @@ The files hold the final state of each rule, with all amendments applied.
 | 2 | Foundation | MUST | nothing | M0 | A merge to main reaches the public URL through CI, and its trace shows in Grafana | [2-foundation.md](2-foundation.md) |
 | 3 | Identity and session | MUST | 2 | M1 | A new Google user signs in on the deployed app and stays signed in after a redeploy | [3-identity.md](3-identity.md) |
 | 4 | Game features | MUST | 1, 3 | see children | All children are done | [4-game-features.md](4-game-features.md) |
-| 4.1 | Season data and seed | MUST | 1.1 | M1 | The 99th seed imports, then re-imports with a corrected label, leaving picks intact | same |
+| 4.1 | Season data and seed | MUST | 1.1 | M1 | The 99th seed imports, then re-imports with a corrected title, leaving picks intact | same |
 | 4.2 | Ballot | MUST | 4.1, 1.2, 3 | M1 | A player completes a ballot on a phone, and a write at the lock instant is refused | same |
 | 4.3 | Results entry | MUST | 4.1, 1.3, 3 | M2 | The admin records and corrects results on a phone | same |
 | 4.4 | Leaderboard and statistics | MUST | 4.2, 4.3, 1.4, 1.5 | M2 | The leaderboard equals a hand-computed fixture, including a tie | same |
@@ -112,6 +112,13 @@ Tommy ruled on three more on the same day, before plan package P2 was built:
 - **4.1.4** refuses a season with nominees in only some categories: a season is imported as a batch.
 - **1.4.3** lists tied players by display name, ignoring case.
 - **4.4.5** lists nominees with equal counts in seed order.
+
+Tommy accepted one more on the same day, after reviewing the domain code of plan package P2:
+
+- **4.1.1, 4.1.2, 4.1.4 and 1.1.7** give a nominee a film, an optional credit and an optional title, in place of two labels; films are listed once and shared by key.
+- **4.1.12**, new, derives the two lines a nominee shows as from those parts and from what its category leads with.
+  The HTTP adapter composes them, because that is presentation.
+- **4.1.2 and 4.1.4** require a key to be made of lowercase letters, digits and hyphens.
 
 ## Open, outside the spec
 
