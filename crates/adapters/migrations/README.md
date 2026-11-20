@@ -1,7 +1,7 @@
 # Migrations
 
 Each file here is one schema change, named `<UTC timestamp>_<description>.sql`.
-`sqlx migrate add <description>` creates one.
+`sqlx migrate add --no-dotenv <description>` creates one; run `just prepare-sqlx` after writing it.
 The server applies every pending migration at startup, before it serves (spec rule 2.4.6).
 
 - **Forward-only.** There are no down migrations, and an applied file is never edited: sqlx refuses to start if its checksum changed.

@@ -120,6 +120,13 @@ Tommy accepted one more on the same day, after reviewing the domain code of plan
   The HTTP adapter composes them, because that is presentation.
 - **4.1.2 and 4.1.4** require a key to be made of lowercase letters, digits and hyphens.
 
+Tommy accepted three more on the same day, before plan package P3 was built:
+
+- **3.5.1** lets a player's row keep Google's name until a display name is chosen.
+  Rules 3.1.3 and 4.8.2.2 prefill the name step from it, and it must outlive the redirect and a closed tab.
+- **3.2.3** ends only the session the browser presented, so a player may be signed in on several devices.
+- **3.2.5** says "all of that player's sessions": signing out on one device signs out every device.
+
 ## Open, outside the spec
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.

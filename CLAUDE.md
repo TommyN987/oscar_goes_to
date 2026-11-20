@@ -15,6 +15,7 @@ An Oscar prediction game. A Rust backend (axum, sqlx, Postgres) serves a JSON AP
 - `just dev` runs backend and frontend with reload.
 - `just check` runs every CI check; `just smoke-image` builds and probes the release image.
 - `just generate` regenerates `openapi.json` and the TypeScript client types after a handler changes.
+- `just prepare-sqlx` regenerates `.sqlx` after a query or a migration changes.
 
 ## Working agreement
 

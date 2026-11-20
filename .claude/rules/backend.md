@@ -40,6 +40,12 @@ paths:
 - Migrations live in `crates/adapters/migrations`, run at startup, are forward-only, and expand before they contract.
   A migration on `main` is never edited; add a new one.
 - The pool holds at most five connections.
+- Postgres stores and compares; it decides nothing. The application writes every timestamp from the clock port,
+  so no column defaults to `now()`, and it computes every derived value, such as a display name's uniqueness key.
+- A constraint has an explicit name, and the test of a refused statement asserts that name.
+- Builds are offline: `query!` reads the metadata in `.sqlx`. After changing a query or a migration, run
+  `just prepare-sqlx`; `just check-rust` fails on stale metadata.
+- Call the sqlx CLI only through `just`, or with `--no-dotenv`: it echoes a line of `.env` it cannot parse.
 
 ## Telemetry
 
