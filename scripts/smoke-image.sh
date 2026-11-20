@@ -42,6 +42,8 @@ expect "readiness answers once the database is reachable" \
     "$(curl --silent --output /dev/null --write-out '%{http_code}' "http://localhost:$port/api/health/ready")" "204"
 expect "a page path serves the shell" "$(curl --silent --include "http://localhost:$port/ballot")" "text/html"
 expect "the shell boots the app" "$(curl --silent "http://localhost:$port/")" "_app/immutable"
+expect "the shell names the app before it boots" "$(curl --silent "http://localhost:$port/")" \
+    "<title>The Gold Ballot</title>"
 # The whole policy, with the hash of SvelteKit's inline script replaced, since it changes with every build.
 # The brackets make the comparison exact: a directive added, loosened or dropped in vite.config.ts fails here.
 shell_policy=$(curl --silent "http://localhost:$port/" |

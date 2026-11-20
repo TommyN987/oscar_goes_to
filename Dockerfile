@@ -2,7 +2,8 @@
 
 FROM node:26.13.1-trixie-slim AS spa
 WORKDIR /build/frontend
-RUN npm install --global pnpm@12.21.0
+# No lifecycle scripts: installing pnpm needs none, so none from the registry may run.
+RUN npm install --global --ignore-scripts pnpm@12.21.0
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
