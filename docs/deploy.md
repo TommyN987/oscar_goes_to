@@ -89,7 +89,7 @@ gcloud run services update gold-ballot --region=europe-west1 --no-invoker-iam-ch
 
 Done on 2026-11-18; the service has answered the public since.
 
-## Repository settings (rules 2.1.4 and 2.1.5)
+## Repository and account settings (rules 2.1.4, 2.1.5, 2.5.4 and 2.5.6)
 
 Read from the GitHub API on 2026-11-20:
 
@@ -97,6 +97,12 @@ Read from the GitHub API on 2026-11-20:
   The checks `rust`, `frontend`, `contract` and `image` must pass on an up-to-date branch.
   The rule binds administrators too, and force pushes and deletion are off.
 - Secret scanning and push protection are on.
+
+Reported by Tommy on 2026-11-20:
+
+- A push straight to `main` was rejected.
+- The Neon project is in AWS Europe Central 1 (Frankfurt).
+- The €1 billing alert exists.
 
 The `supply-chain` check was added to CI after that reading and is not among the required checks yet.
 

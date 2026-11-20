@@ -43,17 +43,17 @@ jobs:
       IMAGE_REF: europe-west1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/gold-ballot/gold-ballot:${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: just
       - name: Build the release image and smoke-test it
         run: just smoke-image
-      - uses: google-github-actions/auth@v3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v3
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
       - name: Log Docker in to the image repository
         run: gcloud auth configure-docker "$REGISTRY" --quiet
       - run: just push-image "$IMAGE_REF"
