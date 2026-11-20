@@ -5,6 +5,7 @@ An Oscar prediction game. A Rust backend (axum, sqlx, Postgres) serves a JSON AP
 ## Where things are decided
 
 - `docs/spec/` is authoritative. Its rules are cited by number, such as "spec rule 2.4.2", in comments and test names.
+- `docs/plan.md` orders the work. Its items are cited as "P3.2", and each spec rule has one owning item.
 - Read only the spec file for the package in hand, or grep for a rule number. `docs/design.md` explains the choices; `docs/research/` is history and is not needed to write code.
 - Rules for backend, frontend and operations files are in `.claude/rules/` and load when you touch those files.
 

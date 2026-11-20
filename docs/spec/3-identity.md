@@ -55,7 +55,7 @@ Done when a new Google user signs in on the deployed app and stays signed in aft
 | 3.5.1 | MUST | The app stores only subject ID, email, display name and timestamps per player; a blocked record keeps subject ID, email and removal time | The schema has no other personal column | C, U |
 | 3.5.2 | MUST | Deletion asks for confirmation, erases the player, picks and sessions, and nulls the actor in the results log | No row references the player, and the log entries remain | U, C |
 | 3.5.3 | MUST | An admin page lists players by name and email, each with a remove action | A removed player vanishes from the leaderboard and is blocked | U |
-| 3.5.4 | SHOULD | A privacy note says what is stored, who sees it and how to delete it | Every page footer links to it | C |
+| 3.5.4 | MUST | A privacy note says what is stored, who sees it and how to delete it | Every page footer links to it | C |
 
 ## Notes
 

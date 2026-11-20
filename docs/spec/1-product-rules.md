@@ -2,7 +2,9 @@
 
 Part of [the specification](README.md). Levels and source codes are defined there.
 
-Done when every MUST rule below has a domain test carrying its number (rule 6.6.1).
+Done when every MUST rule below has a test carrying its number (rule 6.6.1).
+The pure rules are tested in the domain crate before M1 code.
+The others gain their test in the slice that builds them, by M2.
 
 ## 1.1 Season and catalog
 
@@ -41,7 +43,7 @@ Done when every MUST rule below has a domain test carrying its number (rule 6.6.
 | 1.3.2 | MUST | A category's result is one or more winning nominees of that category | Two winners can be recorded for one category | R |
 | 1.3.3 | MUST | Results can be recorded only after lock | An attempt before lock is refused | C |
 | 1.3.4 | MUST | An admin can replace or clear a result | After a correction, the next leaderboard read reflects it | D |
-| 1.3.5 | SHOULD | Result changes are append-only, with time and actor | After a correction, storage holds both entries | D, C |
+| 1.3.5 | MUST | Result changes are append-only, with time and actor | After a correction, storage holds both entries | D, C |
 | 1.3.6 | MUST | Recording the same winner twice leaves one result | A repeated request changes nothing | C |
 | 1.3.7 | MUST | Results enter through one application seam | The HTTP handler and a test double both call the same use case | D |
 | 1.3.8 | WONT | Automated ingestion before the February 2027 decision | No code polls an external source | D |
