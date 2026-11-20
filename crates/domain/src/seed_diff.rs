@@ -1,10 +1,11 @@
 //! What a re-import would change: the difference between the stored season and the one in the seed file.
 //!
-//! Entries are matched by key, never by label, so a corrected label keeps its picks (spec rule 4.1.2).
+//! Entries are matched by key, never by what they read, so a corrected title or credit keeps its picks
+//! (spec rule 4.1.2).
 
 use std::collections::BTreeSet;
 
-use crate::season::{CategoryKey, NomineeKey, Season};
+use crate::season::{CategoryKey, FilmKey, NomineeKey, Season};
 use crate::time::UtcInstant;
 
 /// A nominee as the diff names it: its category's key and its own.
@@ -15,8 +16,8 @@ pub type NomineeRef = (CategoryKey, NomineeKey);
 pub struct Changes<Key> {
     /// Keys only the incoming season has, in its order.
     pub added: Vec<Key>,
-    /// Keys both have, whose name or label differs, in the incoming order.
-    pub relabeled: Vec<Key>,
+    /// Keys both have, whose entry differs in anything but its place, in the incoming order.
+    pub changed: Vec<Key>,
     /// Keys only the stored season has, in its order.
     pub removed: Vec<Key>,
     /// Whether the entries both seasons have appear in a different order.
@@ -27,7 +28,7 @@ impl<Key> Default for Changes<Key> {
     fn default() -> Self {
         Self {
             added: Vec::new(),
-            relabeled: Vec::new(),
+            changed: Vec::new(),
             removed: Vec::new(),
             reordered: false,
         }
@@ -36,7 +37,7 @@ impl<Key> Default for Changes<Key> {
 
 impl<Key> Changes<Key> {
     fn is_empty(&self) -> bool {
-        self.added.is_empty() && self.relabeled.is_empty() && self.removed.is_empty() && !self.reordered
+        self.added.is_empty() && self.changed.is_empty() && self.removed.is_empty() && !self.reordered
     }
 }
 
@@ -45,7 +46,11 @@ impl<Key> Changes<Key> {
 pub struct SeasonDiff {
     /// The stored lock instant and the incoming one, if they differ (spec rule 1.1.6).
     pub lock_instant: Option<(UtcInstant, UtcInstant)>,
+    /// A film is changed when its title differs. The order of films carries no meaning and is never reported.
+    pub films: Changes<FilmKey>,
+    /// A category is changed when its name or its lead differs.
     pub categories: Changes<CategoryKey>,
+    /// A nominee is changed when its film, its credit or its own title differs.
     /// The nominees of an added category are all added, and those of a removed category all removed.
     pub nominees: Changes<NomineeRef>,
 }
@@ -53,7 +58,7 @@ pub struct SeasonDiff {
 impl SeasonDiff {
     /// Whether the import would change nothing.
     pub fn is_empty(&self) -> bool {
-        self.lock_instant.is_none() && self.categories.is_empty() && self.nominees.is_empty()
+        self.lock_instant.is_none() && self.films.is_empty() && self.categories.is_empty() && self.nominees.is_empty()
     }
 
     /// The removed nominees among `in_use`, the nominees that picks or results name.
@@ -74,8 +79,17 @@ pub fn diff(stored: &Season, incoming: &Season) -> SeasonDiff {
     let categories = changes(
         stored.categories().iter().map(|category| (&category.key, category)),
         incoming.categories().iter().map(|category| (&category.key, category)),
-        |stored, incoming| stored.name != incoming.name,
+        |stored, incoming| stored.name != incoming.name || stored.lead != incoming.lead,
     );
+    // Films are a list to look titles up in; their order shows nowhere, so a new order is no change.
+    let films = Changes {
+        reordered: false,
+        ..changes(
+            stored.films().iter().map(|film| (&film.key, film)),
+            incoming.films().iter().map(|film| (&film.key, film)),
+            |stored, incoming| stored.title != incoming.title,
+        )
+    };
 
     let mut nominees = Changes::default();
     for category in stored.categories() {
@@ -86,10 +100,12 @@ pub fn diff(stored: &Season, incoming: &Season) -> SeasonDiff {
         let within = changes(
             category.nominees.iter().map(|nominee| (&nominee.key, nominee)),
             incoming_nominees.iter().map(|nominee| (&nominee.key, nominee)),
-            |stored, incoming| stored.label != incoming.label || stored.secondary_label != incoming.secondary_label,
+            |stored, incoming| {
+                stored.film != incoming.film || stored.credited != incoming.credited || stored.title != incoming.title
+            },
         );
         let in_category = |nominee: NomineeKey| (category.key.clone(), nominee);
-        nominees.relabeled.extend(within.relabeled.into_iter().map(in_category));
+        nominees.changed.extend(within.changed.into_iter().map(in_category));
         nominees.removed.extend(within.removed.into_iter().map(in_category));
         nominees.reordered |= within.reordered;
     }
@@ -107,16 +123,17 @@ pub fn diff(stored: &Season, incoming: &Season) -> SeasonDiff {
     SeasonDiff {
         lock_instant: (stored.lock_instant() != incoming.lock_instant())
             .then(|| (stored.lock_instant(), incoming.lock_instant())),
+        films,
         categories,
         nominees,
     }
 }
 
-/// Compares two sequences of keyed entries. `relabeled` says whether an entry both hold reads differently.
+/// Compares two sequences of keyed entries. `changed` says whether an entry both hold differs.
 fn changes<'a, Key: Clone + Ord + 'a, Entry: 'a>(
     stored: impl Iterator<Item = (&'a Key, &'a Entry)>,
     incoming: impl Iterator<Item = (&'a Key, &'a Entry)>,
-    relabeled: impl Fn(&Entry, &Entry) -> bool,
+    changed: impl Fn(&Entry, &Entry) -> bool,
 ) -> Changes<Key> {
     let stored: Vec<(&Key, &Entry)> = stored.collect();
     let incoming: Vec<(&Key, &Entry)> = incoming.collect();
@@ -131,8 +148,8 @@ fn changes<'a, Key: Clone + Ord + 'a, Entry: 'a>(
             None => changes.added.push((*key).clone()),
             Some(stored_entry) => {
                 kept_in_incoming_order.push(*key);
-                if relabeled(stored_entry, entry) {
-                    changes.relabeled.push((*key).clone());
+                if changed(stored_entry, entry) {
+                    changes.changed.push((*key).clone());
                 }
             }
         }
@@ -151,7 +168,8 @@ fn changes<'a, Key: Clone + Ord + 'a, Entry: 'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::{LOCK, category, category_key, nominee_key, season};
+    use crate::fixtures::{LOCK, category, category_key, film, film_key, nominee, nominee_key, season, season_of};
+    use crate::season::Lead;
 
     fn nominee_ref(category: &str, nominee: &str) -> NomineeRef {
         (category_key(category), nominee_key(nominee))
@@ -171,6 +189,8 @@ mod tests {
 
         let difference = diff(&stored, &incoming);
 
+        assert_eq!(difference.films.added, [film_key("x"), film_key("y"), film_key("z")]);
+        assert_eq!(difference.films.removed, [film_key("a"), film_key("c")]);
         assert_eq!(difference.categories.added, [category_key("actor")]);
         assert_eq!(difference.categories.removed, [category_key("director")]);
         assert_eq!(
@@ -185,40 +205,91 @@ mod tests {
             difference.nominees.removed,
             [nominee_ref("picture", "a"), nominee_ref("director", "c")]
         );
-        assert!(difference.categories.relabeled.is_empty());
-        assert!(difference.nominees.relabeled.is_empty());
+        assert!(difference.films.changed.is_empty());
+        assert!(difference.categories.changed.is_empty());
+        assert!(difference.nominees.changed.is_empty());
         assert!(!difference.is_empty());
     }
 
     #[test]
-    fn rule_4_1_2_a_changed_label_keeps_its_key() {
-        let stored = season(&[("picture", &["a", "b"])]);
-        let mut picture = category("picture", &["a", "b"]);
+    fn rule_4_1_2_a_corrected_title_name_or_credit_keeps_its_key() {
+        let stored = season(&[("picture", &["a", "b", "c"])]);
+        let mut corrected_film = film("a");
+        corrected_film.title = "A, corrected".into();
+        let mut picture = category("picture", &["a", "b", "c"]);
         picture.name = "Best Picture".into();
-        picture.nominees[0].label = "A, corrected".into();
-        picture.nominees[1].secondary_label = Some("Producer B".into());
-        let incoming = Season::new(99, LOCK, vec![picture]).unwrap();
+        picture.nominees[1].credited = Some("Producer B".into());
+        picture.nominees[2].title = Some("C's own title".into());
+        let incoming = Season::new(99, LOCK, vec![corrected_film, film("b"), film("c")], vec![picture]).unwrap();
 
         let difference = diff(&stored, &incoming);
 
-        assert_eq!(difference.categories.relabeled, [category_key("picture")]);
+        assert_eq!(difference.films.changed, [film_key("a")]);
+        assert_eq!(difference.categories.changed, [category_key("picture")]);
         assert_eq!(
-            difference.nominees.relabeled,
-            [nominee_ref("picture", "a"), nominee_ref("picture", "b")]
+            difference.nominees.changed,
+            [nominee_ref("picture", "b"), nominee_ref("picture", "c")]
         );
-        assert!(difference.nominees.added.is_empty());
-        assert!(difference.nominees.removed.is_empty());
+        for added_or_removed in [&difference.nominees.added, &difference.nominees.removed] {
+            assert!(added_or_removed.is_empty());
+        }
+        assert!(difference.films.added.is_empty() && difference.films.removed.is_empty());
+        assert!(difference.categories.added.is_empty() && difference.categories.removed.is_empty());
+    }
+
+    #[test]
+    fn rule_4_1_2_a_film_with_a_new_key_is_removed_and_added_and_its_nominees_change() {
+        let stored = season(&[("picture", &["a"])]);
+        let mut picture = category("picture", &["a"]);
+        picture.nominees[0].film = film_key("a-rekeyed");
+        let incoming = season_of(vec![picture]).unwrap();
+
+        let difference = diff(&stored, &incoming);
+
+        assert_eq!(difference.films.removed, [film_key("a")]);
+        assert_eq!(difference.films.added, [film_key("a-rekeyed")]);
+        assert_eq!(difference.nominees.changed, [nominee_ref("picture", "a")]);
+        assert!(difference.nominees.removed.is_empty() && difference.nominees.added.is_empty());
+    }
+
+    #[test]
+    fn a_nominee_moved_to_another_film_is_changed() {
+        let stored = season_of(vec![category("picture", &["a"]), category("editing", &["b"])]).unwrap();
+        let mut editing = category("editing", &["b"]);
+        editing.nominees[0].film = film_key("a");
+        let incoming = Season::new(99, LOCK, vec![film("a")], vec![category("picture", &["a"]), editing]).unwrap();
+
+        let difference = diff(&stored, &incoming);
+
+        assert_eq!(difference.nominees.changed, [nominee_ref("editing", "b")]);
+        assert_eq!(difference.films.removed, [film_key("b")]);
+    }
+
+    #[test]
+    fn a_category_that_leads_with_something_else_is_changed() {
+        let stored = season(&[("actor", &["a"])]);
+        let mut actor = category("actor", &["a"]);
+        actor.lead = Lead::Credited;
+        actor.nominees[0].credited = Some("An Actor".into());
+        let incoming = season_of(vec![actor]).unwrap();
+
+        assert_eq!(diff(&stored, &incoming).categories.changed, [category_key("actor")]);
     }
 
     #[test]
     fn rule_4_1_2_a_changed_key_is_a_removal_plus_an_addition() {
         let stored = season(&[("picture", &["a"])]);
-        let incoming = season(&[("picture", &["a-renamed"])]);
+        let mut renamed = nominee("a");
+        renamed.key = nominee_key("a-renamed");
+        let mut picture = category("picture", &[]);
+        picture.nominees = vec![renamed];
+        let incoming = season_of(vec![picture]).unwrap();
 
         let difference = diff(&stored, &incoming);
 
         assert_eq!(difference.nominees.removed, [nominee_ref("picture", "a")]);
         assert_eq!(difference.nominees.added, [nominee_ref("picture", "a-renamed")]);
+        assert!(difference.films.is_empty());
     }
 
     /// The part of spec rule 1.1.6 that needs no storage; plan item P4.3 closes the rule.
@@ -226,7 +297,7 @@ mod tests {
     fn a_new_lock_instant_is_reported_with_the_old_one() {
         let stored = season(&[("picture", &["a"])]);
         let later = UtcInstant::from_millis_since_epoch(LOCK.millis_since_epoch() + 3_600_000);
-        let incoming = Season::new(99, later, stored.categories().to_vec()).unwrap();
+        let incoming = Season::new(99, later, stored.films().to_vec(), stored.categories().to_vec()).unwrap();
 
         let difference = diff(&stored, &incoming);
 
@@ -248,12 +319,24 @@ mod tests {
     }
 
     #[test]
+    fn the_order_of_films_carries_no_meaning() {
+        let stored = season(&[("picture", &["a", "b"])]);
+        let films_swapped = Season::new(99, LOCK, vec![film("b"), film("a")], stored.categories().to_vec()).unwrap();
+
+        let difference = diff(&stored, &films_swapped);
+
+        assert!(!difference.films.reordered);
+        assert!(difference.is_empty());
+    }
+
+    #[test]
     fn an_addition_between_two_entries_is_not_a_new_order() {
         let stored = season(&[("picture", &["a", "b"]), ("director", &["c"])]);
         let incoming = season(&[("picture", &["a", "x", "b"]), ("actor", &["y"]), ("director", &["c"])]);
 
         let difference = diff(&stored, &incoming);
 
+        assert!(!difference.films.reordered);
         assert!(!difference.categories.reordered);
         assert!(!difference.nominees.reordered);
     }
