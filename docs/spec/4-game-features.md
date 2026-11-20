@@ -127,7 +127,9 @@ Versioning is unnecessary because one image ships client and server together.
 | 4.7.5 | MUST | Text contrast meets WCAG AA | The automated scan reports no contrast failure | C |
 | 4.7.6 | WONT | A dark-mode switch | One theme ships | C |
 
-## What the Figma file shows (G, read on 2026-11-17)
+## What the Figma drafts showed (G, read on 2026-11-17)
+
+This describes the original drafts, which now sit on the file's Archive page.
 
 - **Look:** an editorial awards-night style in near-black, ivory and champagne gold,
   with a high-contrast display serif, a sans for UI text, square corners and thin rules.
@@ -135,8 +137,20 @@ Versioning is unnecessary because one image ships client and server together.
 - **Six screens:** create account, log in, make your picks, your ballot, ballot locked, empty ballot.
 - **Three widths:** 1440, 768 and 390.
 - **Sample data:** the 98th ceremony, March 15, 2026, 7:00 PM ET.
-- The file defines no variables, so color and font names were not read from it.
-- About sixty stray one-character text layers sit on the canvas outside the frames.
+- The drafts defined no variables, so color and font names were not read from them.
+- About sixty stray one-character text layers sat on the canvas outside the frames.
+
+## What the Figma file holds now (2026-11-20)
+
+- **Pages:** Screens, Design system, and Archive with the drafts. The stray text layers are removed.
+- **Screens:** a frame for every screen in section 4.8 at 1440 and 390, and the ballot screens redrawn.
+  Eight screens also have a frame at 768; for the others rule 4.7.3 cannot be judged at that width yet.
+- **Variables:** Primitives, Theme (colors), Layout (spacing, sizes, radius, border width) and Typography, plus 16 text styles.
+  `frontend/src/routes/layout.css` carries the Theme colors (rule 4.7.1), except the dialog scrim, which has no theme entry yet.
+- **Changed from the drafts:** muted gray and gold text are darker, so by calculation they reach 4.5:1 on every light surface.
+  The automated scan that rule 4.7.5 asks for does not exist yet.
+  Inputs and outlined buttons have a stronger outline, "Will win" is a square toggle at every width, and no text is set below 12px.
+- **Fonts:** Bodoni Moda for display and Inter for UI text, both under the SIL Open Font License (rule 4.7.2).
 
 ## Notes
 
@@ -152,9 +166,11 @@ Versioning is unnecessary because one image ships client and server together.
   That follows from the ruling on 1.4.6.
 - **The 99th standings vanish from the UI when the 100th season is seeded (4.4.7).**
   The data stays in the database.
-- **The Figma file's auth forms are replaced.**
-  It shows email and password forms; the design chose Google sign-in only, and 3.1.9 excludes passwords.
+- **The drafts' auth forms are replaced.**
+  They show email and password forms; the design chose Google sign-in only, and 3.1.9 excludes passwords.
+  The frames on the Screens page show the Google button.
 - **The lock time needs a weekday.**
   For players on CET the lock is 00:00 on a Monday, which reads ambiguously as either night.
-- **Gold text on ivory may fail rule 4.7.5.**
-  It looked low-contrast in the ballot table, but was not measured.
+- **Gold text on ivory is too faint for rule 4.7.5, so the theme does not use it.**
+  Measured on 2026-11-19: `#D6BA7F` on the ivory surfaces is between 1.4:1 and 1.8:1.
+  The theme keeps gold for dark surfaces and uses bronze `#6F5A33` on ivory, 4.9:1 at worst.

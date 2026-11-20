@@ -25,6 +25,8 @@ paths:
 - OpenAPI is code-first: each handler carries `#[utoipa::path]` and is registered once in `http/mod.rs`.
   After changing a handler or a wire type, run `just generate`; never edit `openapi.json` by hand.
 - Use `/add-api-operation` for a new operation.
+- User-facing text, such as an `ApiError` message a page may show, uses American spelling: "canceled", "favorite".
+  The rule is about user-facing language only; comments may use British spelling.
 
 ## Postgres
 
