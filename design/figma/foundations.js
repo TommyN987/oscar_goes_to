@@ -55,13 +55,13 @@
 		'gold/800': '#57513E',
 		'green/600': '#3F5A3A',
 		'red/600': '#8C2F26',
-		'amber/600': '#8A5A00',
+		'amber/600': '#805300',
 		'blue/600': '#3E5C76'
 	};
 	for (const [n, h] of Object.entries(prim)) mk(P, n, 'COLOR', hex(h), [], null, h);
 	mk(P, 'ink/900-60', 'COLOR', hex('#151613', 0.6), [], null, '#151613 at 60%');
 
-	// ---------- Theme: semantic colour, one mode (spec rule 4.7.6) ----------
+	// ---------- Theme: semantic color, one mode (spec rule 4.7.6) ----------
 	const T = col('Theme', 'Gold Ballot');
 	const BG = ['FRAME_FILL', 'SHAPE_FILL'];
 	const TX = ['TEXT_FILL', 'SHAPE_FILL', 'STROKE_COLOR'];
@@ -70,26 +70,26 @@
 		['color/bg/page', 'ivory/100', BG, 'var(--color-base-200)', 'Page background.'],
 		['color/bg/raised', 'ivory/50', BG, 'var(--color-base-100)', 'Cards, table rows, inputs: the lightest surface.'],
 		['color/bg/tint', 'ivory/200', BG, 'var(--color-base-300)', 'Tinted panels: sidebar, guidance panel, table header.'],
-		['color/bg/selected', 'gold/100', BG, 'var(--color-selected)', 'Selected row or pressed "Should win". Custom theme colour.'],
+		['color/bg/selected', 'gold/100', BG, 'var(--gb-selected)', 'Selected row or pressed "Should win". Custom theme color.'],
 		['color/bg/inverse', 'ink/900', BG, 'var(--color-neutral)', 'Dark surfaces: navigation, dark banner, primary button.'],
 		['color/bg/brand', 'gold/300', BG, 'var(--color-primary)', 'Champagne gold fill. With dark text only.'],
 		['color/bg/accent', 'gold/700', BG, 'var(--color-accent)', 'Bronze fill for progress and statistic bars on light surfaces.'],
 		['color/bg/scrim', 'ink/900-60', BG, 'rgb(21 22 19 / 0.6)', 'Overlay behind a dialog.'],
 		['color/text/default', 'ink/900', TX, 'var(--color-base-content)', 'Body text and icons on light surfaces. 13:1 or better.'],
-		['color/text/muted', 'ink/500', TX, 'var(--color-muted)', 'Secondary text on light surfaces. 4.9:1 or better on every light surface. Custom theme colour.'],
-		['color/text/accent', 'gold/700', TX, 'var(--color-accent)', 'Gold text on light surfaces: eyebrows, favourites. 4.9:1 or better.'],
+		['color/text/muted', 'ink/500', TX, 'var(--gb-muted)', 'Secondary text on light surfaces. 4.9:1 or better on every light surface. Custom theme color.'],
+		['color/text/accent', 'gold/700', TX, 'var(--color-accent)', 'Gold text on light surfaces: eyebrows, favorites. 4.9:1 or better.'],
 		['color/text/inverse', 'ivory/100', TX, 'var(--color-neutral-content)', 'Text on dark surfaces.'],
-		['color/text/inverse-muted', 'ink/300', TX, 'var(--color-neutral-muted)', 'Secondary text on dark surfaces. 8.9:1. Custom theme colour.'],
+		['color/text/inverse-muted', 'ink/300', TX, 'var(--gb-neutral-muted)', 'Secondary text on dark surfaces. 8.9:1. Custom theme color.'],
 		['color/text/brand', 'gold/300', TX, 'var(--color-primary)', 'Gold text on dark surfaces only. Fails contrast on ivory.'],
 		['color/text/success', 'green/600', TX, 'var(--color-success)', 'Correct, saved. Always with text or an icon (spec rule 6.3.3).'],
 		['color/text/error', 'red/600', TX, 'var(--color-error)', 'Missed, failed, destructive. Always with text or an icon.'],
 		['color/text/warning', 'amber/600', TX, 'var(--color-warning)', 'Caution notices.'],
 		['color/text/info', 'blue/600', TX, 'var(--color-info)', 'Neutral notices.'],
-		['color/border/default', 'ivory/300', BD, 'var(--color-line)', 'Thin rules and card outlines. Decorative. Custom theme colour.'],
-		['color/border/control', 'ivory/500', BD, 'var(--color-line-control)', 'Outline of inputs, outlined buttons and toggles. 3:1 on light surfaces. Custom theme colour.'],
+		['color/border/default', 'ivory/300', BD, 'var(--gb-line)', 'Thin rules and card outlines. Decorative. Custom theme color.'],
+		['color/border/control', 'ivory/500', BD, 'var(--gb-line-control)', 'Outline of inputs, outlined buttons and toggles. 3:1 on light surfaces. Custom theme color.'],
 		['color/border/strong', 'ink/900', BD, 'var(--color-base-content)', 'Focus ring, active tab underline.'],
 		['color/border/accent', 'gold/700', BD, 'var(--color-accent)', 'Outline of a selected row or pressed toggle.'],
-		['color/border/inverse', 'gold/800', BD, 'var(--color-neutral-line)', 'Rules on dark surfaces. Custom theme colour.'],
+		['color/border/inverse', 'gold/800', BD, 'var(--gb-neutral-line)', 'Rules on dark surfaces. Custom theme color.'],
 		['color/border/brand', 'gold/300', BD, 'var(--color-primary)', 'Gold rule on dark surfaces: active navigation link.']
 	];
 	for (const [n, p, sc, syn, d] of sem) mk(T, n, 'COLOR', alias(p), sc, syn, d);

@@ -5,8 +5,11 @@
 }
 
 /*
- * The one theme (spec rule 4.7.1): every colour lives here, and corners are square.
- * The colour values are provisional until they are read from the Figma file.
+ * The one theme (spec rule 4.7.1): every color lives here, and corners are square.
+ * The values are the Theme variables of the Figma file; each comment names the variable.
+ * The "--gb-" colors have no daisyUI role; the block below turns them into utilities.
+ * By calculation every text color here reaches 4.5:1 on each surface it is meant for
+ * (spec rule 4.7.5): gold is for dark surfaces only, and on ivory the bronze accent takes its place.
  */
 @plugin 'daisyui/theme' {
 	name: 'gold-ballot';
@@ -14,26 +17,33 @@
 	prefersdark: false;
 	color-scheme: light;
 
-	--color-base-100: oklch(97% 0.015 90);
-	--color-base-200: oklch(94% 0.018 90);
-	--color-base-300: oklch(89% 0.02 90);
-	--color-base-content: oklch(18% 0.01 80);
-	--color-primary: oklch(76% 0.09 85);
-	--color-primary-content: oklch(18% 0.01 80);
-	--color-secondary: oklch(30% 0.01 80);
-	--color-secondary-content: oklch(97% 0.015 90);
-	--color-accent: oklch(62% 0.1 80);
-	--color-accent-content: oklch(18% 0.01 80);
-	--color-neutral: oklch(18% 0.01 80);
-	--color-neutral-content: oklch(97% 0.015 90);
-	--color-info: oklch(55% 0.1 240);
-	--color-info-content: oklch(97% 0.015 90);
-	--color-success: oklch(50% 0.1 150);
-	--color-success-content: oklch(97% 0.015 90);
-	--color-warning: oklch(75% 0.14 75);
-	--color-warning-content: oklch(18% 0.01 80);
-	--color-error: oklch(50% 0.17 27);
-	--color-error-content: oklch(97% 0.015 90);
+	--color-base-100: #fbf8f1; /* color/bg/raised: cards, rows, inputs */
+	--color-base-200: #f5f0e6; /* color/bg/page */
+	--color-base-300: #eae4d7; /* color/bg/tint: sidebar, guidance panel, table header */
+	--color-base-content: #151613; /* color/text/default, color/border/strong */
+	--color-primary: #d6ba7f; /* color/bg/brand, color/text/brand: gold */
+	--color-primary-content: #151613;
+	--color-secondary: #3a3a33; /* ink/700 */
+	--color-secondary-content: #f5f0e6;
+	--color-accent: #6f5a33; /* color/text/accent, color/bg/accent, color/border/accent: bronze */
+	--color-accent-content: #fbf8f1;
+	--color-neutral: #151613; /* color/bg/inverse: navigation, dark banner, primary button */
+	--color-neutral-content: #f5f0e6; /* color/text/inverse */
+	--color-info: #3e5c76; /* color/text/info */
+	--color-info-content: #fbf8f1;
+	--color-success: #3f5a3a; /* color/text/success */
+	--color-success-content: #fbf8f1;
+	--color-warning: #805300; /* color/text/warning */
+	--color-warning-content: #fbf8f1;
+	--color-error: #8c2f26; /* color/text/error */
+	--color-error-content: #fbf8f1;
+
+	--gb-muted: #5e5d54; /* color/text/muted */
+	--gb-selected: #e8ddc4; /* color/bg/selected */
+	--gb-line: #d8d1c3; /* color/border/default */
+	--gb-line-control: #8f8873; /* color/border/control */
+	--gb-neutral-muted: #b8b6a9; /* color/text/inverse-muted */
+	--gb-neutral-line: #57513e; /* color/border/inverse */
 
 	--radius-selector: 0rem;
 	--radius-field: 0rem;
@@ -46,4 +56,19 @@
 
 	--depth: 0;
 	--noise: 0;
+}
+
+/*
+ * Utilities for the colors daisyUI has no role for: text-muted, bg-selected, border-line,
+ * border-line-control, text-neutral-muted and border-neutral-line.
+ * Each one points at the theme above, so no color value is written here.
+ * In hand-written CSS read var(--gb-muted) and friends; Tailwind emits --color-muted only when used.
+ */
+@theme inline {
+	--color-muted: var(--gb-muted);
+	--color-selected: var(--gb-selected);
+	--color-line: var(--gb-line);
+	--color-line-control: var(--gb-line-control);
+	--color-neutral-muted: var(--gb-neutral-muted);
+	--color-neutral-line: var(--gb-neutral-line);
 }

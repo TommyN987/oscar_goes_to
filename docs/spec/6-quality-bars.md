@@ -24,9 +24,9 @@ Done when each feature slice cites the bars it meets.
 
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
-| 6.3.1 | MUST | A category is a labelled group; each toggle exposes its pressed state and a name such as "Will win: Sean Penn" | An automated scan reports no serious or critical issue on any page | G, U |
+| 6.3.1 | MUST | A category is a labeled group; each toggle exposes its pressed state and a name such as "Will win: Sean Penn" | An automated scan reports no serious or critical issue on any page | G, U |
 | 6.3.2 | MUST | The ballot can be completed by keyboard alone | A keyboard-only journey passes | C |
-| 6.3.3 | MUST | Right, wrong and pending are never shown by colour alone | Each state carries text or an icon | C |
+| 6.3.3 | MUST | Right, wrong and pending are never shown by color alone | Each state carries text or an icon | C |
 
 ## 6.4 States
 

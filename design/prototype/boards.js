@@ -15,8 +15,8 @@ const signinStates = () =>
 		['Default · 4.8.1.2', signinActions()],
 		['After a press · 4.8.1.4', signinActions({ pending: true })],
 		[
-			'Sign-in cancelled · 4.8.10.2',
-			signinActions({ notice: notice('info', 'Sign-in was cancelled. Try again when you’re ready.') })
+			'Sign-in canceled · 4.8.10.2',
+			signinActions({ notice: notice('info', 'Sign-in was canceled. Try again when you’re ready.') })
 		],
 		[
 			'Google error · 4.8.10.2',
@@ -117,29 +117,29 @@ const SWATCHES = {
 		['color/bg/page', '--color-base-200', '#F5F0E6', 'Page background'],
 		['color/bg/raised', '--color-base-100', '#FBF8F1', 'Cards, rows, inputs'],
 		['color/bg/tint', '--color-base-300', '#EAE4D7', 'Sidebar, guidance panel, table header'],
-		['color/bg/selected', '--color-selected', '#E8DDC4', 'Selected row, pressed “Should win”'],
+		['color/bg/selected', '--gb-selected', '#E8DDC4', 'Selected row, pressed “Should win”'],
 		['color/bg/inverse', '--color-neutral', '#151613', 'Navigation, dark banner, primary button'],
 		['color/bg/brand', '--color-primary', '#D6BA7F', 'Gold fill. With dark text only'],
 		['color/bg/accent', '--color-accent', '#6F5A33', 'Progress and statistic bars']
 	],
 	'Borders and rules': [
-		['color/border/default', '--color-line', '#D8D1C3', 'Thin rules, card outlines'],
-		['color/border/control', '--color-line-control', '#8F8873', 'Inputs, outlined buttons, toggles · 3:1'],
+		['color/border/default', '--gb-line', '#D8D1C3', 'Thin rules, card outlines'],
+		['color/border/control', '--gb-line-control', '#8F8873', 'Inputs, outlined buttons, toggles · 3:1'],
 		['color/border/strong', '--color-base-content', '#151613', 'Focus ring, active tab'],
 		['color/border/accent', '--color-accent', '#6F5A33', 'Selected row, pressed toggle'],
-		['color/border/inverse', '--color-neutral-line', '#57513E', 'Rules on dark surfaces']
+		['color/border/inverse', '--gb-neutral-line', '#57513E', 'Rules on dark surfaces']
 	]
 };
 const TEXTS = [
 	['color/text/default', '--color-base-content', '#151613', 'base-200', '16.0 : 1'],
-	['color/text/muted', '--color-muted', '#5E5D54', 'base-200', '5.8 : 1 · 4.9 on selected'],
+	['color/text/muted', '--gb-muted', '#5E5D54', 'base-200', '5.8 : 1 · 4.9 on selected'],
 	['color/text/accent', '--color-accent', '#6F5A33', 'base-200', '5.8 : 1 · 4.9 on selected'],
 	['color/text/success', '--color-success', '#3F5A3A', 'base-200', '6.8 : 1'],
 	['color/text/error', '--color-error', '#8C2F26', 'base-200', '7.3 : 1'],
-	['color/text/warning', '--color-warning', '#8A5A00', 'base-200', '5.2 : 1'],
+	['color/text/warning', '--color-warning', '#805300', 'base-200', '5.9 : 1'],
 	['color/text/info', '--color-info', '#3E5C76', 'base-200', '6.2 : 1'],
 	['color/text/inverse', '--color-neutral-content', '#F5F0E6', 'neutral', '16.0 : 1'],
-	['color/text/inverse-muted', '--color-neutral-muted', '#B8B6A9', 'neutral', '8.9 : 1'],
+	['color/text/inverse-muted', '--gb-neutral-muted', '#B8B6A9', 'neutral', '8.9 : 1'],
 	['color/text/brand', '--color-primary', '#D6BA7F', 'neutral', '9.7 : 1 · dark surfaces only']
 ];
 const TYPE = [
@@ -178,7 +178,7 @@ const RULES = [
 const swatch = ([name, v, hex, note]) =>
 	`<div class="swatch"><div class="swatch__chip" style="background:${hex}"></div><div class="t-strong">${name}</div><div class="t-caption muted">${hex} · ${v}</div><div class="t-caption muted">${note}</div></div>`;
 const system = () => {
-	const colour =
+	const color =
 		Object.entries(SWATCHES)
 			.map(
 				([g, items]) =>
@@ -223,7 +223,7 @@ const system = () => {
 			`<div class="stack">${field('Display name', 'Alex Morgan', '1–40 characters, must be unique')}${field('Display name · focused', 'Alex Morgan').replace('class="input"', 'class="input is-focus"')}${field('Display name · error', 'Alex Morgan', '', 'That name is taken. Try another.')}</div>`
 		),
 		cell(
-			'Tag and result status · never colour alone (6.3.3)',
+			'Tag and result status · never color alone (6.3.3)',
 			`<div class="row row--wrap"><span class="tag tag--solid">You</span><span class="tag tag--gold">Winner</span><span class="tag">Your favorite</span></div><div class="row row--wrap" style="margin-top:16px;gap:24px">${status('correct')}${status('missed')}${status('pending')}</div>`
 		),
 		cell(
@@ -257,7 +257,7 @@ const system = () => {
 		panel('Before the big night', 'Still time to change your mind.', `<p class="t-body-l muted">Your prediction is who you think will win. Your “should win” is who you’re rooting for.</p><button class="btn btn--primary btn--lg btn--block">Finish my ballot ${ic('arrowRight')}</button>`),
 		'frame--flush'
 	)}${cell('Dialog', DIALOGS[4][1], 'frame--flush')}</div>`;
-	return `<div class="board"><div class="stack"><div class="t-wordmark accent">The Gold Ballot</div><h1 class="t-h-xl">Design system</h1><p class="t-body-l muted" style="max-width:720px">One theme, square corners, thin rules, two type families. Token names match the Figma variables; the CSS custom property after each name is the one the daisyUI theme defines. No colour is used outside this list (spec rule 4.7.1).</p></div>${section('Colour', 'Every text pairing meets WCAG AA (spec rule 4.7.5). Gold #D6BA7F is for dark surfaces only; on ivory use the bronze accent.', colour)}${section('Type', 'Bodoni Moda for display, Inter for everything else. Both are under the SIL Open Font License and are self-hosted (spec rule 4.7.2). Nothing is set below 12px.', `<div>${type}</div>`)}${section('Spacing and layout', 'A 4px grid on Tailwind’s scale: space/6 is p-6. The named rules on the right are the canonical paddings and sizes.', space)}${section('Components', 'The named patterns of spec section 4.8. Each screen is built only from these.', `<div class="board__grid board__grid--2">${comps}</div><div class="stack stack--page">${wide}</div>${sidePair}`)}</div>`;
+	return `<div class="board"><div class="stack"><div class="t-wordmark accent">The Gold Ballot</div><h1 class="t-h-xl">Design system</h1><p class="t-body-l muted" style="max-width:720px">One theme, square corners, thin rules, two type families. Token names match the Figma variables; the CSS custom property after each name is the one the daisyUI theme defines. No color is used outside this list (spec rule 4.7.1).</p></div>${section('Color', 'Every text pairing meets WCAG AA (spec rule 4.7.5). Gold #D6BA7F is for dark surfaces only; on ivory use the bronze accent.', color)}${section('Type', 'Bodoni Moda for display, Inter for everything else. Both are under the SIL Open Font License and are self-hosted (spec rule 4.7.2). Nothing is set below 12px.', `<div>${type}</div>`)}${section('Spacing and layout', 'A 4px grid on Tailwind’s scale: space/6 is p-6. The named rules on the right are the canonical paddings and sizes.', space)}${section('Components', 'The named patterns of spec section 4.8. Each screen is built only from these.', `<div class="board__grid board__grid--2">${comps}</div><div class="stack stack--page">${wide}</div>${sidePair}`)}</div>`;
 };
 
 SCREENS['signin-states'] = ['4.8.1 Sign-in and name step · states', signinStates];

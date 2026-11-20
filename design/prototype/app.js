@@ -448,7 +448,7 @@ const statSection = (i) => {
 	const tag = { win: '<span class="tag tag--gold">Winner</span>', fav: '<span class="tag">Your favorite</span>' };
 	return `<section class="stack stack--item"><div class="row row--between" style="align-items:flex-end"><div class="stack stack--text"><div class="t-eyebrow muted">Category ${pad(i + 1)} / 24</div><h2 class="t-h-s">${CATS[i]}</h2></div><span class="t-caption muted">${total} ${total === 1 ? 'favorite' : 'favorites'}</span></div>${
 		rows
-			? `<div class="table" style="border-top:1px solid var(--color-line)">${rows
+			? `<div class="table" style="border-top:1px solid var(--gb-line)">${rows
 					.map(
 						([n, s, c, t]) =>
 							`<div class="statrow"><div class="td"><div class="row row--wrap" style="gap:8px"><span class="t-body-l-strong">${n}</span>${t ? tag[t] : ''}</div><span class="t-caption muted">${s}</span></div><div class="statbar"><i style="width:${max ? (c / max) * 100 : 0}%"></i></div><span class="t-title" style="text-align:right">${c}</span></div>`

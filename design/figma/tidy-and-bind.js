@@ -9,7 +9,7 @@
  * With APPLY = true it does four things, each of which leaves the look of a frame unchanged:
  *   1. deletes the superseded "Upcoming notice · 390" capture (the one with the misplaced name menu)
  *   2. lays the frames on the Screens page out in rows, one row per screen
- *   3. binds every solid fill and stroke whose colour equals a token to that variable
+ *   3. binds every solid fill and stroke whose color equals a token to that variable
  *   4. applies the text style whose font, size and weight equal a text layer's
  */
 (async () => {
@@ -29,10 +29,10 @@
 			.map((x) => Math.round(x * 255).toString(16).padStart(2, '0'))
 			.join('')
 			.toUpperCase();
-	// colour -> variable, by what the paint is used for
+	// color -> variable, by what the paint is used for
 	const TEXT = {
-		// pure black is the unpressed toggles: the prototype's .toggle rule set no colour, so the
-		// browser default was captured. Binding them corrects them to the ink colour.
+		// pure black is the unpressed toggles: the prototype's .toggle rule set no color, so the
+		// browser default was captured. Binding them corrects them to the ink color.
 		'#000000': 'color/text/default',
 		'#151613': 'color/text/default',
 		'#5E5D54': 'color/text/muted',
@@ -43,6 +43,7 @@
 		'#3F5A3A': 'color/text/success',
 		'#8C2F26': 'color/text/error',
 		'#8A5A00': 'color/text/warning',
+		'#805300': 'color/text/warning',
 		'#3E5C76': 'color/text/info'
 	};
 	const FILL = {
@@ -89,7 +90,7 @@
 			const h = hex(p.color);
 			const name = map[h];
 			if (!name || (p.opacity !== undefined && p.opacity < 0.999)) {
-				bump(st.unmatchedColours, `${kind} ${h}${p.opacity < 0.999 ? ' @' + p.opacity.toFixed(2) : ''}`);
+				bump(st.unmatchedColors, `${kind} ${h}${p.opacity < 0.999 ? ' @' + p.opacity.toFixed(2) : ''}`);
 				return p;
 			}
 			bump(st.bound, name);
@@ -132,7 +133,7 @@
 			continue;
 		}
 		await page.loadAsync();
-		const st = { bound: {}, alreadyBound: 0, unmatchedColours: {}, textStyled: {}, textAlreadyStyled: 0, textUnmatched: {}, textMixed: 0, errors: [] };
+		const st = { bound: {}, alreadyBound: 0, unmatchedColors: {}, textStyled: {}, textAlreadyStyled: 0, textUnmatched: {}, textMixed: 0, errors: [] };
 		const r = (report.pages[pageName] = {
 			topLevel: page.children.map((n) => `${n.id} ${n.type} "${n.name}" ${Math.round(n.width)}x${Math.round(n.height)} @${Math.round(n.x)},${Math.round(n.y)}`)
 		});
@@ -173,7 +174,7 @@
 			r.notArranged = page.children.filter((n) => !n.removed && !/ · \d+$/.test(n.name)).map((n) => n.name);
 		}
 
-		// 3 and 4. colours and text styles
+		// 3 and 4. colors and text styles
 		const nodes = page.findAll(() => true).filter((n) => !n.removed);
 		const texts = nodes.filter((n) => n.type === 'TEXT');
 		if (APPLY) {
@@ -194,9 +195,9 @@
 			errors: st.errors.slice(0, 10),
 			nodes: nodes.length,
 			textLayers: texts.length,
-			coloursBound: top(st.bound, 30),
-			coloursAlreadyBound: st.alreadyBound,
-			coloursUnmatched: top(st.unmatchedColours, 20),
+			colorsBound: top(st.bound, 30),
+			colorsAlreadyBound: st.alreadyBound,
+			colorsUnmatched: top(st.unmatchedColors, 20),
 			textStylesApplied: top(st.textStyled, 20),
 			textAlreadyStyled: st.textAlreadyStyled,
 			textUnmatched: top(st.textUnmatched, 20),
