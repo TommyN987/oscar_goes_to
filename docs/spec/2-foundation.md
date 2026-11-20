@@ -66,7 +66,7 @@ Rule 2.1.5 requires checks, not approvals: one GitHub account cannot approve its
 | 2.5.5 | MUST | Rollback to the previous revision is one documented command | It has been rehearsed once at M0 | R |
 | 2.5.6 | MUST | A billing alert fires at €1 | The alert exists and a test notification arrived | D |
 | 2.5.7 | MUST | No automatic deploy happens from 8 to 15 March 2027 | A merge inside the window does not deploy | D |
-| 2.5.8 | SHOULD | The same image runs on Render | It was deployed there once at M0 and answered health | D |
+| 2.5.8 | MAY | The same image runs on Render; pursued only if proven necessary | It was deployed there once and answered health | D, U |
 | 2.5.9 | WONT | A separate staging environment in v1 | Only one environment exists | U |
 
 ## 2.6 Domain

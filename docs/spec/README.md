@@ -1,8 +1,8 @@
 # Specification
 
-Status: complete on 2026-11-18, after six rounds of dialogue.
+Status: complete on 2026-11-18, after six rounds of dialogue; amended on 2026-11-20 with the implementation plan.
 Inputs: [the frame](../frame.md), [the research record](../research/README.md) and [the design](../design.md).
-Next phase: Code. The Figma frames for the screens in section 4.8 were added on 2026-11-19.
+Next phase: Code, in the order of [the implementation plan](../plan.md). The Figma frames for the screens in section 4.8 were added on 2026-11-19.
 
 Product name: **The Gold Ballot**. Tagline: "Guess the Oscars with Tommy".
 
@@ -31,7 +31,7 @@ The files hold the final state of each rule, with all amendments applied.
 
 | # | Package | Level | Depends on | Milestone | Done when | File |
 |---|---|---|---|---|---|---|
-| 1 | Product rules | MUST | nothing | before M1 code | Every MUST rule has a domain test carrying its number | [1-product-rules.md](1-product-rules.md) |
+| 1 | Product rules | MUST | nothing | pure rules before M1 code, the rest by M2 | Every MUST rule has a test carrying its number | [1-product-rules.md](1-product-rules.md) |
 | 2 | Foundation | MUST | nothing | M0 | A merge to main reaches the public URL through CI, and its trace shows in Grafana | [2-foundation.md](2-foundation.md) |
 | 3 | Identity and session | MUST | 2 | M1 | A new Google user signs in on the deployed app and stays signed in after a redeploy | [3-identity.md](3-identity.md) |
 | 4 | Game features | MUST | 1, 3 | see children | All children are done | [4-game-features.md](4-game-features.md) |
@@ -43,7 +43,7 @@ The files hold the final state of each rule, with all amendments applied.
 | 4.6 | API surface | MUST | 4.1–4.5 | grows with each | `openapi.json` lists exactly the specified operations | same |
 | 4.7 | Visual system | MUST | nothing | M0 onward | One theme holds the palette, and no color literal sits outside it | same |
 | 4.8 | Screen specifications | MUST | 4.2–4.5, 3 | per screen | Each screen has Figma frames before its slice is coded | [4.8-screens.md](4.8-screens.md) |
-| 5 | Operations | SHOULD | 2 | M2 | One restore from backup has been rehearsed | [5-operations.md](5-operations.md) |
+| 5 | Operations | SHOULD | 2 | M2; rule 5.1 by 20 January | One restore from backup has been rehearsed | [5-operations.md](5-operations.md) |
 | 6 | Quality bars | MUST | cuts across 3 and 4 | each milestone | Each feature slice cites the bars it meets | [6-quality-bars.md](6-quality-bars.md) |
 
 ## Milestones
@@ -55,6 +55,7 @@ The files hold the final state of each rule, with all amendments applied.
 | M2 | 7 March 2027 | Packages 4.3, 4.4, 5; before the deploy freeze of 8–15 March |
 
 The ceremony is on 14 March 2027 at 7 p.m. ET; picks lock then, expected 2027-03-15 00:00 CET.
+Two rules of package 5 are due before M2: rule 5.1 on 20 January 2027, and the first run of rule 5.6 in December 2026.
 
 ## Dependencies
 
@@ -84,13 +85,26 @@ Four rules were aligned so the recorded spec does not contradict itself.
 - **3.1.8** named the consent screen "Guess the Oscars with Tommy" in round 3. It is recorded as "The Gold Ballot", the later product name.
 - **1.2.4 and 6.3.1** assumed radio inputs and a clear control. They are recorded in their round-5 form: toggles, pressed again to clear.
 
+## Amendments made with the implementation plan
+
+Tommy accepted these on 2026-11-20. [The plan](../plan.md) lists them as decisions D1 to D5.
+
+- **4.6.2** now lists the current season as public. Rule 4.8.1.1 puts the seed's numeral and date on the signed-out page, which had no way to read them.
+- **Package 1** is done when each MUST rule has a test carrying its number, at any layer.
+  It had asked for a domain test before M1 code, which rules such as 1.2.8, 1.4.2 and 1.6.6 cannot have.
+- **1.3.5, 4.3.7, 3.5.4 and 4.8.11.1** rose from SHOULD to MUST.
+  Rule 3.5.2 depends on the results log, and rules 4.5.6 and 4.8.1.3 link to the privacy note.
+- **Package 5** keeps M2, but rule 5.1 is due on 20 January 2027 and rule 5.6 first runs in December 2026.
+  Rule 5.1 asks for dumps from 21 January, and rule 5.6 for a run each December.
+- **2.5.8** fell from SHOULD to MAY: Render is pursued only if proven necessary.
+
 ## Open, outside the spec
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.
 - **Accounts:** Google Cloud with billing, Neon, Grafana Cloud, the Google OAuth client, and `gcloud` on Tommy's machine (O: missing on 2026-11-16).
 - **Figma:** the frames for the screens in 4.8 exist since 2026-11-19 (rule 4.8.0.1).
   They are plain layers bound to variables and text styles; turning them into components is still open.
-- **Slices:** who writes which.
+- **Slices:** [the plan](../plan.md) orders them; who writes which is still open.
 - **Unexamined since research:** GDPR obligations and trademark exposure.
 
 ## Still unverified (T)

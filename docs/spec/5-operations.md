@@ -3,6 +3,7 @@
 Part of [the specification](README.md). Levels and source codes are defined there.
 
 Done when one restore from backup has been rehearsed.
+Rule 5.1 is due on 20 January 2027, and rule 5.6 first runs in December 2026; the other rules are due at M2.
 
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|

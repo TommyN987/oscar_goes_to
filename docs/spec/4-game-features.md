@@ -64,7 +64,7 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | 4.3.4 | MUST | Correcting and clearing use the same flow, with confirmation | A corrected category shows the new winners after refresh | D |
 | 4.3.5 | MUST | Before lock the page shows "opens at lock" | A request before lock is refused | C |
 | 4.3.6 | MUST | A failed save is shown with a retry | A component test with a failing save shows both | C |
-| 4.3.7 | SHOULD | Each set or clear appends a log entry; the current result is the latest entry | After a correction the log holds two entries | D, C |
+| 4.3.7 | MUST | Each set or clear appends a log entry; the current result is the latest entry | After a correction the log holds two entries | D, C |
 | 4.3.8 | MUST | Categories without a result list first, as the two groups in 4.8.7.1 | A category moves to the announced group once recorded | C |
 | 4.3.9 | WONT | Showing the admin how many players scored | The admin response equals what a player may see | F |
 | 4.3.10 | WONT | Bulk or automated result entry in v1 | No such operation exists | D |
@@ -101,14 +101,14 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
 | 4.6.1 | MUST | The API holds exactly the operations listed below | `openapi.json` lists these and no others | C |
-| 4.6.2 | MUST | Only health, sign-in start and sign-in callback are public | The walk in 3.3.2 uses this list | C |
+| 4.6.2 | MUST | Only health, sign-in start, sign-in callback and the current season are public | The walk in 3.3.2 uses this list | C |
 | 4.6.3 | WONT | API versioning | Paths carry no version segment | D, C |
 
 The operations:
 
 - **Session:** start sign-in, sign-in callback, sign out, who am I.
 - **Account:** set display name, delete my account.
-- **Season:** get the current season with categories, nominees, phase and lock instant.
+- **Season:** get the current season with categories, nominees, phase and lock instant (public, rule 4.6.2).
 - **Ballot:** get my ballot, set or clear one pick.
 - **Standings:** get the leaderboard, get should-win statistics.
 - **Admin:** get results, set or clear a category's winners, list players, remove a player, list blocked accounts (with 4.8.8.4), unblock (only if 4.8.8.5 is built).
@@ -166,6 +166,9 @@ This describes the original drafts, which now sit on the file's Archive page.
   That follows from the ruling on 1.4.6.
 - **The 99th standings vanish from the UI when the 100th season is seeded (4.4.7).**
   The data stays in the database.
+- **The current season is public.**
+  The signed-out page shows the ceremony numeral and date from the seed (4.8.1.1), so it reads the season without a session.
+  Nominees, the phase and the lock instant are public knowledge.
 - **The drafts' auth forms are replaced.**
   They show email and password forms; the design chose Google sign-in only, and 3.1.9 excludes passwords.
   The frames on the Screens page show the Google button.
