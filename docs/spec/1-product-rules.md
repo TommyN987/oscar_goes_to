@@ -54,7 +54,7 @@ The others gain their test in the slice that builds them, by M2.
 |---|---|---|---|---|
 | 1.4.1 | MUST | A will-win pick scores 1 if its nominee is among the winners, else 0; should-win never scores | A property test equates score with the count of matching categories | F, C |
 | 1.4.2 | MUST | Scores are computed on read | No table or column stores a score | D |
-| 1.4.3 | MUST | Ranks are shared as 1, 1, 3, and ties list by display name | A unit test with tied scores yields 1, 1, 3 | F, C |
+| 1.4.3 | MUST | Ranks are shared as 1, 1, 3, and ties list by display name, ignoring case | A unit test with tied scores yields 1, 1, 3 | F, C, U |
 | 1.4.4 | MUST | The leaderboard lists players with at least one will-win pick | A player with no picks is absent | C |
 | 1.4.5 | MUST | The leaderboard requires sign-in and is unavailable before lock | A signed-out request is refused, and a request before lock gets a "not yet" outcome | U |
 | 1.4.6 | WONT | An "N of 24 announced, last result at HH:MM" line | The leaderboard response carries no such field | U |

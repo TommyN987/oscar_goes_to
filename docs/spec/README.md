@@ -107,6 +107,12 @@ Tommy accepted or ruled three more on the same day, while plan package P1 was bu
 - **2.5.6** is done when the €1 budget exists and emails an address Tommy reads.
   It had asked for a test notification, which a budget sends only when spend crosses a threshold.
 
+Tommy ruled on three more on the same day, before plan package P2 was built:
+
+- **4.1.4** refuses a season with nominees in only some categories: a season is imported as a batch.
+- **1.4.3** lists tied players by display name, ignoring case.
+- **4.4.5** lists nominees with equal counts in seed order.
+
 ## Open, outside the spec
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.

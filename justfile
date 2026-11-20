@@ -49,12 +49,13 @@ dev-frontend:
 # Run every check CI runs.
 check: check-rust check-frontend check-contract check-supply-chain
 
-# Format, lints as errors, tests against local Postgres, and the architecture rules.
+# Format, lints as errors, tests against local Postgres, the architecture rules and the rule ledger.
 check-rust: postgres
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo nextest run --workspace --locked
     scripts/check-architecture.sh
+    scripts/check-rule-ledger.sh
 
 # Lint, the one-theme rule, type-check, component tests and the static build.
 check-frontend:

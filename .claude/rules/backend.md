@@ -19,6 +19,12 @@ paths:
 - Wire types belong to `adapters`. The domain carries no serialization or OpenAPI annotations.
 - Scores are derived on every read and never stored.
 
+## Errors
+
+- An error type derives `thiserror::Error`, with one `#[error("...")]` message per variant; an error gets no hand-written `Display` or `Error` impl.
+- A conversion from another error type is a `#[from]` variant, not a `map_err` at each call site.
+- `thiserror` is declared once, under `[workspace.dependencies]`. It is the only run-time dependency of `domain`.
+
 ## HTTP
 
 - Handlers stay thin: extract, call a use case, map the result.
@@ -45,6 +51,11 @@ paths:
 ## Tests
 
 - A test that pins a spec rule carries its number in its name: `rule_2_4_5_readiness_fails_without_the_database`.
+- Package 1 is stricter, because `scripts/check-rule-ledger.sh` counts its rules as tested by name:
+  a test is named `rule_1_x_y_` only when it meets that rule's done-condition, and the rule's line leaves
+  `scripts/rule-ledger-pending.txt` in the same change.
+  A test of a package-1 rule's pure half, closed by a later plan item, gets a plain name and a comment naming the rule.
+  Outside package 1, a test may carry the number of a rule it pins only in part.
 - Rules are tested in `domain` with unit and property tests, without IO.
 - Use cases are tested against real Postgres with `#[sqlx::test]`, a fake clock and a fake identity. There is no in-memory storage fake.
 - The fake identity adapter sits behind a compile-time feature that the release image is built without, and CI probes the built image.

@@ -49,24 +49,13 @@ pub struct ServerConfig {
 }
 
 /// A configuration variable that is missing or malformed. Its message names the variable.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ConfigError {
+    #[error("environment variable {variable} is not set")]
     Missing { variable: &'static str },
+    #[error("environment variable {variable} is invalid: {reason}")]
     Invalid { variable: &'static str, reason: String },
 }
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Missing { variable } => write!(f, "environment variable {variable} is not set"),
-            Self::Invalid { variable, reason } => {
-                write!(f, "environment variable {variable} is invalid: {reason}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ConfigError {}
 
 impl ServerConfig {
     /// Reads the configuration from the process environment.
@@ -163,6 +152,21 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("DATABASE_URL"));
+    }
+
+    #[test]
+    fn rule_2_4_3_each_configuration_error_names_its_variable_and_cause() {
+        let missing = ConfigError::Missing { variable: "PORT" };
+        let invalid = ConfigError::Invalid {
+            variable: "PORT",
+            reason: "invalid digit found in string".into(),
+        };
+
+        assert_eq!(missing.to_string(), "environment variable PORT is not set");
+        assert_eq!(
+            invalid.to_string(),
+            "environment variable PORT is invalid: invalid digit found in string"
+        );
     }
 
     #[test]
