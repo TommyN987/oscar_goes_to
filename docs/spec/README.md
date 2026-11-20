@@ -98,6 +98,11 @@ Tommy accepted these on 2026-11-20. [The plan](../plan.md) lists them as decisio
   Rule 5.1 asks for dumps from 21 January, and rule 5.6 for a run each December.
 - **2.5.8** fell from SHOULD to MAY: Render is pursued only if proven necessary.
 
+Tommy accepted one more on the same day, while plan package P1 was built:
+
+- **2.1.8** names the rule files in `.claude/rules/`, which load with the files they govern.
+  It had asked `CLAUDE.md` itself to list the architecture rules, which would state them twice.
+
 ## Open, outside the spec
 
 - **Domain:** Tommy buys it by 7 January 2027 (rule 2.6.4). Name and registrar are undecided.

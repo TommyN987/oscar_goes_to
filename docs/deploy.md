@@ -97,6 +97,8 @@ Read from the GitHub API on 2026-11-20:
   The checks `rust`, `frontend`, `contract` and `image` must pass on an up-to-date branch.
   The rule binds administrators too, and force pushes and deletion are off.
 - Secret scanning and push protection are on.
+  Push protection stops a token only when it has the format of a provider GitHub knows.
+  A made-up value committed to `.env.example` on 2026-11-20 was pushed and merged without a block or an alert.
 
 Reported by Tommy on 2026-11-20:
 
