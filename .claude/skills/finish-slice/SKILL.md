@@ -14,6 +14,13 @@ Send each command's output to a file in the scratchpad and read only failures an
 1. `just check`
 2. `just smoke-image`, if anything under `crates/`, `frontend/`, `Dockerfile` or `scripts/smoke-image.sh` changed.
 3. For each new test that pins a spec rule, confirm it can fail: break the guarded code once and see it go red, then restore it.
+4. Check the diff against the SonarQube rules this repo has tripped. No local Sonar analysis exists on this plan
+   (`sonar analyze agentic` answers 403), so the gate is first seen after a push:
+   - `githubactions:S7637`: a workflow action GitHub does not own is pinned to a full commit SHA;
+   - `docker:S6505`: a package install in the `Dockerfile` passes `--ignore-scripts`;
+   - `Web:PageWithoutTitleCheck`: an HTML page has a `<title>`.
+
+   Add a rule to this list when SonarQube raises one that is not on it.
 
 A failure is fixed before going on, or reported as the slice's state. Never report a check as passed that did not run.
 
@@ -37,6 +44,9 @@ Write the hand-off in this order.
 6. **Tommy's steps, in order:**
    - anything outside the repo first, such as running `scripts/bootstrap-gcp.sh` or adding a line to `.env`, with why it must come before the merge;
    - then the git commands, in a code block: `git add -A`, a `git commit -m` with a message in the style of `git log --oneline -5`, `git push -u origin <branch>`, `gh pr create --fill`;
+   - then, once the pull request is open, a request to tell Claude, who reads its SonarQube issues and quality gate
+     through the SonarQube MCP server (`list_pull_requests`, `search_sonar_issues_in_projects`,
+     `get_project_quality_gate_status`) and fixes what it finds in the same round;
    - then what to check after the deploy, with the exact command or URL.
 
 ## 4. Leave things tidy
