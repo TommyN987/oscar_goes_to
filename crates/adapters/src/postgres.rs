@@ -32,8 +32,14 @@ pub async fn migrate(database: &PgPool) -> Result<(), MigrateError> {
     MIGRATOR.run(database).await
 }
 
-/// Whether a query currently makes the round trip to the database.
+/// Whether a query currently makes the round trip to the database. A failure is logged with its cause.
 #[tracing::instrument(name = "postgres.ping", skip_all, fields(otel.kind = "client", db.system.name = "postgresql"))]
 pub async fn is_reachable(database: &PgPool) -> bool {
-    sqlx::query("SELECT 1").execute(database).await.is_ok()
+    match sqlx::query("SELECT 1").execute(database).await {
+        Ok(_) => true,
+        Err(error) => {
+            tracing::warn!(%error, "the database did not answer");
+            false
+        }
+    }
 }

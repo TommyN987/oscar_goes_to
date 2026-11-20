@@ -146,7 +146,8 @@ This describes the original drafts, which now sit on the file's Archive page.
 - **Screens:** a frame for every screen in section 4.8 at 1440 and 390, and the ballot screens redrawn.
   Eight screens also have a frame at 768; for the others rule 4.7.3 cannot be judged at that width yet.
 - **Variables:** Primitives, Theme (colors), Layout (spacing, sizes, radius, border width) and Typography, plus 16 text styles.
-  `frontend/src/routes/layout.css` carries the Theme colors (rule 4.7.1), except the dialog scrim, which has no theme entry yet.
+  `frontend/src/routes/layout.css` carries the Theme colors (rule 4.7.1), the dialog scrim included, as the utility `bg-scrim`.
+  Tailwind's own palette is switched off there, so only theme colors exist.
 - **Changed from the drafts:** muted gray and gold text are darker, so by calculation they reach 4.5:1 on every light surface.
   The automated scan that rule 4.7.5 asks for does not exist yet.
   Inputs and outlined buttons have a stronger outline, "Will win" is a square toggle at every width, and no text is set below 12px.

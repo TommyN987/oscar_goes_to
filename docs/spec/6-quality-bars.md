@@ -77,6 +77,15 @@ Done when each feature slice cites the bars it meets.
 - **Toggles replaced radios.**
   Round 3 mandated native radio inputs, which cannot be unselected.
   The Figma file's buttons work as toggles, so pressing again clears a pick and rule 1.2.4 needs no extra control.
+- **The content security policy travels in two parts (6.5.1).**
+  SvelteKit writes the policy into the SPA shell as a `<meta>` tag, with the hash of its one inline script.
+  A `<meta>` policy cannot carry `frame-ancestors`, so the server sends that directive as a header on every response.
+  The header test asserts the header, and the image smoke test asserts the shell's policy.
+  Style attributes stay allowed, because SvelteKit hides its route announcer with one.
+  Checked in Chromium on 2026-11-20: the built app and the dev server raise no violation.
+- **The body cap is 16 KiB (6.5.2).**
+  The server refuses a larger declared `Content-Length` before it reads the body.
+  A body that declares no length is not capped yet, because no operation reads one; plan item P3.3 closes that.
 - **The shell cannot show a loading state during cold start.**
   The page is blank until the container answers, which the design accepted.
   Rule 6.4.6 ties the M0 measurement to a decision.

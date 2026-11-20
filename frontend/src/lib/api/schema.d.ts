@@ -56,7 +56,7 @@ export interface components {
          * @description A stable, machine-readable error code. Clients branch on it, so a code is never renamed.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "database_unavailable";
+        ErrorCode: "not_found" | "payload_too_large" | "database_unavailable";
         Liveness: {
             /** @example ok */
             status: string;

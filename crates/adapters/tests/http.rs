@@ -3,11 +3,14 @@
 use std::fs;
 use std::path::PathBuf;
 
-use adapters::http::{Spa, router};
+use adapters::http::{MAX_REQUEST_BODY_BYTES, Spa, router};
 use adapters::telemetry::Telemetry;
 use axum::Router;
 use axum::body::Body;
-use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
+use axum::http::header::{
+    CACHE_CONTROL, CONTENT_LENGTH, CONTENT_SECURITY_POLICY, CONTENT_TYPE, STRICT_TRANSPORT_SECURITY,
+    X_CONTENT_TYPE_OPTIONS,
+};
 use axum::http::{Request, Response, StatusCode};
 use http_body_util::BodyExt;
 use sqlx::PgPool;
@@ -19,6 +22,15 @@ const SHELL: &str = "<!doctype html><title>shell</title>";
 
 async fn get(router: Router, path: &str) -> Response<Body> {
     let request = Request::get(path).body(Body::empty()).unwrap();
+    router.oneshot(request).await.unwrap()
+}
+
+/// Posts a body of `length` bytes, declared in `Content-Length` as a client over a socket would.
+async fn post_body_of(router: Router, path: &str, length: usize) -> Response<Body> {
+    let request = Request::post(path)
+        .header(CONTENT_LENGTH, length)
+        .body(Body::from(vec![b' '; length]))
+        .unwrap();
     router.oneshot(request).await.unwrap()
 }
 
@@ -176,6 +188,58 @@ async fn a_plain_file_is_served_as_itself() {
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(body_text(response).await, "User-agent: *");
+}
+
+#[tokio::test]
+async fn rule_6_5_1_every_response_carries_the_security_headers() {
+    let an_operation = "/api/health";
+    let an_unknown_operation = "/api/nope";
+    let the_shell = "/ballot";
+    let an_asset = "/_app/immutable/entry.abc123.js";
+    let a_missing_asset = "/_app/immutable/gone.js";
+
+    for path in [an_operation, an_unknown_operation, the_shell, an_asset, a_missing_asset] {
+        let response = get(
+            router(
+                Some(built_spa("security_headers")),
+                unreachable_database(),
+                Telemetry::disabled(),
+            ),
+            path,
+        )
+        .await;
+
+        let headers = response.headers();
+        assert_eq!(headers[CONTENT_SECURITY_POLICY], "frame-ancestors 'none'", "{path}");
+        assert_eq!(headers[STRICT_TRANSPORT_SECURITY], "max-age=31536000", "{path}");
+        assert_eq!(headers[X_CONTENT_TYPE_OPTIONS], "nosniff", "{path}");
+    }
+}
+
+#[tokio::test]
+async fn rule_6_5_2_an_oversize_body_is_refused_with_413() {
+    let response = post_body_of(
+        router(None, unreachable_database(), Telemetry::disabled()),
+        "/api/health",
+        MAX_REQUEST_BODY_BYTES + 1,
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert_eq!(body_json(response).await["code"], "payload_too_large");
+}
+
+#[tokio::test]
+async fn rule_6_5_2_a_body_at_the_limit_is_not_refused_for_its_size() {
+    let response = post_body_of(
+        router(None, unreachable_database(), Telemetry::disabled()),
+        "/api/health",
+        MAX_REQUEST_BODY_BYTES,
+    )
+    .await;
+
+    // Liveness takes no POST, so the request gets as far as the method check.
+    assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
 }
 
 #[test]

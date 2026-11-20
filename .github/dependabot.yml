@@ -1,0 +1,29 @@
+# The update bot (spec rule 2.3.7): one weekly round of pull requests for outdated dependencies.
+# The Dockerfile is left out: its Node and Rust versions follow .node-version and rust-toolchain.toml,
+# and the three move together by hand (spec rule 2.1.3).
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Pinned together and upgraded together, in one pull request (spec rule 2.7.8).
+      opentelemetry:
+        patterns:
+          - "opentelemetry*"
+          - "tracing-opentelemetry"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    ignore:
+      # TypeScript stays on 6.x until svelte-check supports 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

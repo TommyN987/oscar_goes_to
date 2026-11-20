@@ -1,4 +1,5 @@
-//! The binary as a process, exporting to a fake OTLP collector: what SIGTERM does to a request in flight.
+//! The binary as a process, exporting to a fake OTLP collector:
+//! what SIGTERM does to a request in flight, and what ties an exported log record to its trace.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -6,6 +7,10 @@ use std::process::{Child, Command, ExitStatus};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
+
+use sqlx::postgres::PgConnectOptions;
+use sqlx::{AssertSqlSafe, ConnectOptions, Connection, PgConnection};
+use tokio::runtime::Runtime;
 
 /// One OTLP export the collector received.
 struct Export {
@@ -97,6 +102,98 @@ impl FakeCollector {
             export.path == path && export.body.windows(text.len()).any(|window| window == text.as_bytes())
         })
     }
+
+    /// The trace ID on the exported log record whose body is `message`, if that record carries one.
+    fn trace_id_of_log(&self, message: &str) -> Option<Vec<u8>> {
+        self.exported_records("/v1/logs").into_iter().find_map(|log_record| {
+            let body = first_field(&log_record, LOG_RECORD_BODY)?;
+            let trace_id = first_field(&log_record, LOG_RECORD_TRACE_ID)?;
+            (first_field(body, ANY_VALUE_STRING)? == message.as_bytes()).then(|| trace_id.to_vec())
+        })
+    }
+
+    /// The trace ID of the exported span named `name`.
+    fn trace_id_of_span(&self, name: &str) -> Option<Vec<u8>> {
+        self.exported_records("/v1/traces").into_iter().find_map(|span| {
+            let trace_id = first_field(&span, SPAN_TRACE_ID)?;
+            (first_field(&span, SPAN_NAME)? == name.as_bytes()).then(|| trace_id.to_vec())
+        })
+    }
+
+    /// Every span or log record exported to `path`, still encoded.
+    fn exported_records(&self, path: &str) -> Vec<Vec<u8>> {
+        let exports = self.exports.lock().unwrap();
+        exports
+            .iter()
+            .filter(|export| export.path == path)
+            .flat_map(|export| nested_messages(&export.body, &PATH_TO_RECORDS))
+            .map(<[u8]>::to_vec)
+            .collect()
+    }
+}
+
+// Field numbers from the OTLP protobuf definitions. An export request holds its spans or log records
+// at the same place: resource group 1, scope group 2, record 2.
+const PATH_TO_RECORDS: [u64; 3] = [1, 2, 2];
+const SPAN_TRACE_ID: u64 = 1;
+const SPAN_NAME: u64 = 5;
+const LOG_RECORD_BODY: u64 = 5;
+const LOG_RECORD_TRACE_ID: u64 = 9;
+const ANY_VALUE_STRING: u64 = 1;
+
+/// Every message found by following `path`, a chain of field numbers, down from `message`.
+fn nested_messages<'a>(message: &'a [u8], path: &[u64]) -> Vec<&'a [u8]> {
+    let Some((field, rest)) = path.split_first() else {
+        return vec![message];
+    };
+    length_delimited_fields(message)
+        .into_iter()
+        .filter(|(number, _)| number == field)
+        .flat_map(|(_, payload)| nested_messages(payload, rest))
+        .collect()
+}
+
+fn first_field(message: &[u8], field: u64) -> Option<&[u8]> {
+    length_delimited_fields(message)
+        .into_iter()
+        .find_map(|(number, payload)| (number == field).then_some(payload))
+}
+
+/// The strings, bytes and nested messages of a protobuf message, each with its field number.
+/// Numeric fields are skipped.
+fn length_delimited_fields(mut message: &[u8]) -> Vec<(u64, &[u8])> {
+    let mut fields = Vec::new();
+    while !message.is_empty() {
+        let key = read_varint(&mut message);
+        match key & 0b111 {
+            0 => {
+                read_varint(&mut message);
+            }
+            1 => message = &message[8..],
+            2 => {
+                let length = usize::try_from(read_varint(&mut message)).unwrap();
+                let (payload, rest) = message.split_at(length);
+                fields.push((key >> 3, payload));
+                message = rest;
+            }
+            5 => message = &message[4..],
+            wire_type => panic!("unexpected protobuf wire type {wire_type}"),
+        }
+    }
+    fields
+}
+
+fn read_varint(message: &mut &[u8]) -> u64 {
+    let mut value = 0;
+    for shift in (0..).step_by(7) {
+        let byte = message[0];
+        *message = &message[1..];
+        value |= u64::from(byte & 0x7f) << shift;
+        if byte & 0x80 == 0 {
+            break;
+        }
+    }
+    value
 }
 
 fn read_export(reader: &mut BufReader<TcpStream>) -> Option<Export> {
@@ -132,10 +229,16 @@ struct Server {
 }
 
 impl Server {
+    /// Starts the server on the database named by `DATABASE_URL`.
     fn start(collector: &FakeCollector) -> Self {
+        Self::start_on(collector, &test_database_url())
+    }
+
+    fn start_on(collector: &FakeCollector, database_url: &str) -> Self {
         let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
         let process = Command::new(env!("CARGO_BIN_EXE_gold-ballot"))
             .env("PORT", port.to_string())
+            .env("DATABASE_URL", database_url)
             .env("OTEL_EXPORTER_OTLP_ENDPOINT", &collector.endpoint)
             .env("TELEMETRY_FLUSH_EACH_REQUEST", "true")
             .env_remove("SPA_DIR")
@@ -206,6 +309,51 @@ fn read_response(mut connection: TcpStream) -> Option<String> {
     Some(response)
 }
 
+fn test_database_url() -> String {
+    std::env::var("DATABASE_URL").expect("DATABASE_URL names the test Postgres")
+}
+
+/// A database of its own on the test Postgres, which a test can take away from a running server.
+struct ScratchDatabase {
+    name: &'static str,
+}
+
+impl ScratchDatabase {
+    fn create(name: &'static str) -> Self {
+        let database = Self { name };
+        database.remove();
+        run_on_test_postgres(format!("CREATE DATABASE {name}"));
+        database
+    }
+
+    fn url(&self) -> String {
+        let options: PgConnectOptions = test_database_url().parse().unwrap();
+        options.database(self.name).to_url_lossy().into()
+    }
+
+    /// Drops the database and closes every connection to it.
+    fn remove(&self) {
+        run_on_test_postgres(format!("DROP DATABASE IF EXISTS {} WITH (FORCE)", self.name));
+    }
+}
+
+impl Drop for ScratchDatabase {
+    fn drop(&mut self) {
+        self.remove();
+    }
+}
+
+/// Runs a statement this file wrote itself; nothing from outside reaches the SQL.
+fn run_on_test_postgres(statement: String) {
+    Runtime::new().unwrap().block_on(async {
+        let mut connection = PgConnection::connect(&test_database_url()).await.unwrap();
+        sqlx::raw_sql(AssertSqlSafe(statement))
+            .execute(&mut connection)
+            .await
+            .unwrap();
+    });
+}
+
 /// Needs the Postgres named by `DATABASE_URL`, like the other tests.
 #[test]
 fn rule_2_4_4_sigterm_lets_the_request_in_flight_finish_and_exports_its_span() {
@@ -235,4 +383,28 @@ fn rule_2_4_4_sigterm_lets_the_request_in_flight_finish_and_exports_its_span() {
     assert!(collector.received("/v1/traces", "postgres.ping"));
     // Logged after the last request finished, so only the flush at shutdown can have exported it.
     assert!(collector.received("/v1/logs", "every in-flight request has finished"));
+}
+
+/// Needs the Postgres named by `DATABASE_URL`, like the other tests.
+#[test]
+fn rule_2_7_3_a_log_event_carries_the_trace_id_of_its_request() {
+    let collector = FakeCollector::start();
+    let database = ScratchDatabase::create("rule_2_7_3_log_trace_id");
+    let mut server = Server::start_on(&collector, &database.url());
+
+    // Readiness fails once the database is gone, and the server logs why inside that request.
+    database.remove();
+    let response = server.get("/api/health/ready").unwrap();
+    assert!(response.starts_with("HTTP/1.1 503"), "readiness answered: {response}");
+    server.send_sigterm();
+    assert!(server.wait_for_exit(Duration::from_secs(10)).success());
+
+    let log_trace_id = collector
+        .trace_id_of_log("the database did not answer")
+        .expect("a log record with that message and a trace ID was exported");
+    let request_trace_id = collector
+        .trace_id_of_span("GET /api/health/ready")
+        .expect("the request's span was exported");
+    assert_eq!(log_trace_id.len(), 16, "a trace ID is 16 bytes");
+    assert_eq!(log_trace_id, request_trace_id);
 }

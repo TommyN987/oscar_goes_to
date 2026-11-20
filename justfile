@@ -47,7 +47,7 @@ dev-frontend:
     cd frontend && pnpm install && pnpm run dev
 
 # Run every check CI runs.
-check: check-rust check-frontend check-contract
+check: check-rust check-frontend check-contract check-supply-chain
 
 # Format, lints as errors, tests against local Postgres, and the architecture rules.
 check-rust: postgres
@@ -56,10 +56,11 @@ check-rust: postgres
     cargo nextest run --workspace --locked
     scripts/check-architecture.sh
 
-# Lint, type-check, component tests and the static build.
+# Lint, the one-theme rule, type-check, component tests and the static build.
 check-frontend:
     cd frontend && pnpm install --frozen-lockfile
     cd frontend && pnpm run lint
+    scripts/check-color-literals.sh
     cd frontend && pnpm run check
     cd frontend && pnpm run test
     cd frontend && pnpm run build
@@ -69,6 +70,13 @@ check-contract:
     cargo run --quiet --locked --bin gold-ballot -- openapi | diff - openapi.json
     cd frontend && pnpm install --frozen-lockfile
     cd frontend && pnpm exec openapi-typescript ../openapi.json | diff - src/lib/api/schema.d.ts
+
+# Fail on a Rust or npm dependency with a known advisory or a license off the allow-lists. Needs the network.
+check-supply-chain:
+    cargo deny --locked check advisories licenses
+    cd frontend && pnpm install --frozen-lockfile
+    cd frontend && pnpm audit
+    scripts/check-npm-licenses.sh
 
 # Regenerate openapi.json and the TypeScript client types after changing a handler.
 generate:

@@ -59,6 +59,8 @@ impl Telemetry {
     ///
     /// Events at INFO and above print as JSON on stdout.
     /// If `config.export` is set, spans, events and metrics are also batched and exported over OTLP.
+    /// An event inside a span is exported with that span's trace ID, because the span layer makes
+    /// its span the current OpenTelemetry context (spec rule 2.7.3).
     /// Export runs on background threads, so an unreachable backend never fails or slows a request
     /// (spec rule 2.7.7).
     pub fn install(config: &TelemetryConfig) -> Result<Self, Box<dyn Error + Send + Sync>> {

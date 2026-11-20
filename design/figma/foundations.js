@@ -74,7 +74,7 @@
 		['color/bg/inverse', 'ink/900', BG, 'var(--color-neutral)', 'Dark surfaces: navigation, dark banner, primary button.'],
 		['color/bg/brand', 'gold/300', BG, 'var(--color-primary)', 'Champagne gold fill. With dark text only.'],
 		['color/bg/accent', 'gold/700', BG, 'var(--color-accent)', 'Bronze fill for progress and statistic bars on light surfaces.'],
-		['color/bg/scrim', 'ink/900-60', BG, 'rgb(21 22 19 / 0.6)', 'Overlay behind a dialog.'],
+		['color/bg/scrim', 'ink/900-60', BG, 'var(--gb-scrim)', 'Overlay behind a dialog. Custom theme color.'],
 		['color/text/default', 'ink/900', TX, 'var(--color-base-content)', 'Body text and icons on light surfaces. 13:1 or better.'],
 		['color/text/muted', 'ink/500', TX, 'var(--gb-muted)', 'Secondary text on light surfaces. 4.9:1 or better on every light surface. Custom theme color.'],
 		['color/text/accent', 'gold/700', TX, 'var(--color-accent)', 'Gold text on light surfaces: eyebrows, favorites. 4.9:1 or better.'],

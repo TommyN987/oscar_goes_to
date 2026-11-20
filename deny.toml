@@ -1,0 +1,23 @@
+# The supply-chain policy for the Rust dependencies (spec rule 2.3.7); `just check-supply-chain` applies it.
+
+[graph]
+all-features = true
+
+# Any advisory in the RustSec database fails the check, whether for a vulnerability or for an unmaintained
+# crate. An exception goes into `ignore` with the reason it does not apply here.
+[advisories]
+ignore = []
+
+# Permissive licenses only: the image ships these crates compiled into one binary.
+# A crate offered under several licenses passes if one of them is listed.
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    # The root certificates in webpki-roots.
+    "CDLA-Permissive-2.0",
+]
