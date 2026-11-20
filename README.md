@@ -13,6 +13,7 @@ You need:
 - Node.js at the version in `.node-version`, and pnpm at the version in `frontend/package.json`
 - [just](https://just.systems), [cargo-watch](https://crates.io/crates/cargo-watch) and [cargo-nextest](https://nexte.st), which runs the Rust tests
 - [cargo-deny](https://embarkstudios.github.io/cargo-deny/), which checks the Rust dependencies for advisories and licenses
+- [sqlx-cli](https://crates.io/crates/sqlx-cli) at the version of the `sqlx` crate, which migrates the local database and checks the SQL metadata
 - Docker with Compose, for the local Postgres and Grafana and for `just image`
 - `gcloud`, only for `just deploy` and `just rollback`
 
@@ -41,6 +42,12 @@ After changing an API handler, regenerate the contract and commit the result:
 
 ```sh
 just generate
+```
+
+After changing a SQL query or a migration, regenerate the metadata in `.sqlx` and commit the result:
+
+```sh
+just prepare-sqlx
 ```
 
 `just` alone lists every recipe.

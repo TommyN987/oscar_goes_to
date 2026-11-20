@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT table_name || '.' || column_name || ' ' || data_type\n            || CASE is_nullable WHEN 'NO' THEN ' not null' ELSE '' END AS \"column!\"\n        FROM information_schema.columns\n        WHERE table_schema = 'public' AND table_name <> '_sqlx_migrations'\n        ORDER BY table_name, ordinal_position\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "column!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "fd56559efec7479653ec52d47ab9b3397f4dc3721b6efb505ebe7ac6009be3af"
+}

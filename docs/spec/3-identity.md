@@ -24,9 +24,9 @@ Done when a new Google user signs in on the deployed app and stays signed in aft
 |---|---|---|---|---|
 | 3.2.1 | MUST | The session ID is 256 random bits, and only its hash is stored | The cookie value appears nowhere in the database | D, C |
 | 3.2.2 | MUST | The cookie is HttpOnly, Secure, SameSite=Lax and host-only | A header test asserts all four | D |
-| 3.2.3 | MUST | Every sign-in issues a new session ID | The previous ID is refused afterwards | C |
+| 3.2.3 | MUST | Every sign-in issues a new session ID and ends the session the browser presented; a player may hold one session per device | The previous ID is refused afterwards | C |
 | 3.2.4 | MUST | A session expires 90 days after its last use | With a fake clock it is valid on day 89 and refused on day 91 | D, U |
-| 3.2.5 | MUST | Sign-out, account deletion and removal each end that player's sessions | The old cookie is refused | C |
+| 3.2.5 | MUST | Sign-out, account deletion and removal each end all of that player's sessions | The old cookie is refused | C |
 | 3.2.6 | MUST | Mutations require a JSON body and an `Origin` equal to the canonical origin | A form post and a foreign-origin post are both refused | D |
 | 3.2.7 | SHOULD | Expired sessions are purged | None remain after a purge | C |
 
@@ -52,7 +52,7 @@ Done when a new Google user signs in on the deployed app and stays signed in aft
 
 | # | Level | Requirement | Done when | Source |
 |---|---|---|---|---|
-| 3.5.1 | MUST | The app stores only subject ID, email, display name and timestamps per player; a blocked record keeps subject ID, email and removal time | The schema has no other personal column | C, U |
+| 3.5.1 | MUST | The app stores only subject ID, email, display name and timestamps per player, plus Google's name until a display name is chosen; a blocked record keeps subject ID, email and removal time | The schema has no other personal column | C, U |
 | 3.5.2 | MUST | Deletion asks for confirmation, erases the player, picks and sessions, and nulls the actor in the results log | No row references the player, and the log entries remain | U, C |
 | 3.5.3 | MUST | An admin page lists players by name and email, each with a remove action | A removed player vanishes from the leaderboard and is blocked | U |
 | 3.5.4 | MUST | A privacy note says what is stored, who sees it and how to delete it | Every page footer links to it | C |

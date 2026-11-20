@@ -6,6 +6,10 @@ backend_port := "8080"
 # The local Postgres that `just up` starts, unless the environment names another database.
 export DATABASE_URL := env("DATABASE_URL", "postgres://gold_ballot:gold_ballot@localhost:5432/gold_ballot")
 
+# Every build checks its SQL against the metadata in .sqlx and never against a database,
+# as the image build must once the binary holds a query.
+export SQLX_OFFLINE := "true"
+
 # Where the local Grafana stack that `just up` starts receives OTLP over HTTP.
 local_otlp_endpoint := "http://localhost:4318"
 image := "gold-ballot"
@@ -49,13 +53,29 @@ dev-frontend:
 # Run every check CI runs.
 check: check-rust check-frontend check-contract check-supply-chain
 
-# Format, lints as errors, tests against local Postgres, the architecture rules and the rule ledger.
-check-rust: postgres
+# Format, lints as errors, tests against local Postgres, the architecture rules, the rule ledger and the sqlx metadata.
+check-rust: postgres && check-sqlx
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo nextest run --workspace --locked
     scripts/check-architecture.sh
     scripts/check-rule-ledger.sh
+
+# Fail if .sqlx differs from what the queries and the migrations produce (spec rule 2.3.1).
+# The sqlx CLI only warns about a file that no query produces any more; the second line fails on one.
+check-sqlx: migrate-local
+    cargo sqlx prepare --no-dotenv --workspace --check -- --all-targets
+    @[ "$(ls .sqlx)" = "$(ls "${CARGO_TARGET_DIR:-target}/sqlx-prepare-check")" ] || { echo ".sqlx holds metadata of a query that is gone; run \`just prepare-sqlx\`"; exit 1; }
+
+# Regenerate .sqlx after changing a query or a migration.
+prepare-sqlx: migrate-local
+    cargo sqlx prepare --no-dotenv --workspace -- --all-targets
+
+# Bring the local database to this checkout's schema, which the two recipes above read.
+# `--no-dotenv` matters: without it the sqlx CLI reads .env and echoes a line it cannot parse.
+[private]
+migrate-local: postgres
+    cargo sqlx migrate run --no-dotenv --source crates/adapters/migrations
 
 # Lint, the one-theme rule, type-check, component tests and the static build.
 check-frontend:

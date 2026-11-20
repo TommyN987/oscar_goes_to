@@ -354,6 +354,45 @@ fn run_on_test_postgres(statement: String) {
     });
 }
 
+/// How many migrations the database at `database_url` records as applied.
+fn applied_migration_count(database_url: &str) -> usize {
+    let count: i64 = Runtime::new().unwrap().block_on(async {
+        let mut connection = PgConnection::connect(database_url).await.unwrap();
+        sqlx::query_scalar("SELECT count(*) FROM _sqlx_migrations WHERE success")
+            .fetch_one(&mut connection)
+            .await
+            .unwrap()
+    });
+    count.try_into().unwrap()
+}
+
+fn migration_file_count() -> usize {
+    std::fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/migrations"))
+        .unwrap()
+        .filter(|entry| {
+            entry
+                .as_ref()
+                .unwrap()
+                .path()
+                .extension()
+                .is_some_and(|extension| extension == "sql")
+        })
+        .count()
+}
+
+/// Needs the Postgres named by `DATABASE_URL`, like the other tests.
+#[test]
+fn rule_2_4_6_a_start_applies_every_pending_migration_before_it_serves() {
+    let collector = FakeCollector::start();
+    let empty_database = ScratchDatabase::create("rule_2_4_6_migrate_at_start");
+
+    // `start_on` returns with the server's first answer.
+    let _server = Server::start_on(&collector, &empty_database.url());
+
+    assert_eq!(applied_migration_count(&empty_database.url()), migration_file_count());
+    assert!(migration_file_count() > 0);
+}
+
 /// Needs the Postgres named by `DATABASE_URL`, like the other tests.
 #[test]
 fn rule_2_4_4_sigterm_lets_the_request_in_flight_finish_and_exports_its_span() {

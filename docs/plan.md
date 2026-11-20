@@ -34,7 +34,7 @@ It adds no requirement: a rule's text and done-condition live in `docs/spec/`.
 
 ## Decisions taken with the plan
 
-All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 and D12, which are Tommy's rulings; D14 was accepted the same day, after P2's first commit.
+All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 and D12, which are Tommy's rulings; D14 was accepted the same day, after P2's first commit, and D16 to D18 before P3.1.
 
 | # | Decision | Recorded in |
 |---|---|---|
@@ -53,6 +53,9 @@ All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 
 | D13 | `DisplayName` yields the lowercase key that decides uniqueness; Postgres stores and indexes that key and never computes it | This plan, P2.5 and P3.1 |
 | D14 | A nominee is a film with an optional credit and an optional title of its own; films are shared by key, and a person is not modeled. The two lines of a row are derived from those parts in the HTTP adapter, because composing them is presentation; the domain only knows what a category leads with | Spec rules 4.1.1, 4.1.2, 4.1.4, 4.1.12 and 1.1.7 |
 | D15 | A key is made of lowercase letters, digits and hyphens; the three kinds of key are separate types that refuse anything else | Spec rules 4.1.2 and 4.1.4 |
+| D16 | A player's row keeps Google's name as `suggested_name` until a display name is chosen, to prefill the name step | Spec rule 3.5.1, amended |
+| D17 | A player may hold one session per device: a sign-in ends only the session the browser presented, and sign-out, deletion and removal end them all | Spec rules 3.2.3 and 3.2.5, amended |
+| D18 | Postgres stores and compares, and decides nothing: the application writes every timestamp from the clock port, as it computes the uniqueness key (D13) | This plan, P3.1 |
 
 ## Open decisions
 
@@ -101,7 +104,7 @@ Needs P2.5 and P1.2.
 
 | # | Level | Item | Rules | Needs | Done when |
 |---|---|---|---|---|---|
-| P3.1 | MUST | Identity schema, the first migration | 3.5.1, 1.6.5, 2.4.6, 2.3.1 | none | The personal columns equal the rule's list; the migration applies exactly once; stale sqlx metadata fails CI |
+| P3.1 | MUST | Identity schema, the first migration | 3.5.1, 2.4.6, 2.3.1 | none | The personal columns equal the rule's list; the migration applies exactly once; stale sqlx metadata fails CI |
 | P3.2 | MUST | Sessions on the fake identity adapter. Operations: who am I, sign out | 3.2.1–3.2.5, 3.3.1, 3.3.4, 1.6.3, 3.4.1, 3.4.2, 2.2.3, 2.3.5, 2.7.2 | P3.1 | A session is valid on day 89 and refused on day 91; the release image returns 404 on the fake route; one trace shows HTTP, use-case and SQL spans |
 | P3.3 | MUST | Request guards and the OpenAPI walk | 3.2.6, 3.3.2, 3.3.3, 4.6.1, 4.6.2, 6.4.1 | P3.2 | One test walks `openapi.json`: 401 without a cookie, 403 for a player on admin routes, every error references the shared shape, and no operation falls outside the 4.6.1 list |
 | P3.4 | MUST | Google adapter. Operations: start sign-in, sign-in callback | 3.1.1, 3.1.2, 3.1.4–3.1.7, 2.3.6 | P3.2; current documentation of the OIDC crate | Five token tests, a wrong `state` and three failure paths are refused against an in-process issuer; the release image redirects to Google |
@@ -116,6 +119,11 @@ Needs P2.5 and P1.2.
 
 - P3.4 does not need Tommy's OAuth client: its tests run against an in-process issuer. Only P3.10 waits for the client.
 - P3.1 stores `DisplayName::uniqueness_key` in its own column under a unique index; Postgres never lowercases a name itself (D13).
+- Rule 1.6.5 moved from P3.1 to P4.4 while P3.1 was built, with Tommy's approval: its done-condition needs a sign-in and two seasons,
+  and P4.4 is the first item that has both.
+  P3.1's column test keeps every season out of the identity tables.
+- The first checked query is in P3.1's schema test, so that stale sqlx metadata can fail; P3.2 brings the first one in the binary,
+  and with it `.sqlx` enters the image build.
 - On 2026-11-20 the deploy workflow passes the tag `:${{ github.sha }}`, not a digest (`.github/workflows/deploy.yml`), so rule 3.4.3 is open.
 
 ### P4 Season data
@@ -127,7 +135,7 @@ Needs P3.1, P2.2 and P2.6.
 | P4.1 | MUST | Game schema: seasons, films, categories, nominees, picks, result entries | 4.1.10, 1.2.1, 1.4.2 | P3.1 | Direct SQL inserts breaking 1.2.1 or 1.2.2 are rejected, and no column stores a score |
 | P4.2 | MUST | Seed format, `seasons/99.toml` without nominees, a fixture season | 4.1.1, 4.1.4, 4.1.7, 2.1.1, 1.1.1 | P2.2 | The 99th parses with 24 categories, and a malformed file fails naming the line |
 | P4.3 | MUST | Import command: dry run, apply, force | 4.1.2, 4.1.3, 4.1.5, 4.1.6, 1.1.6, 1.1.7, 1.1.8, 3.3.5 | P4.1, P4.2, P2.6 | A failed import changes nothing; a corrected title or credit keeps its picks; a removal with picks fails without the force flag |
-| P4.4 | MUST | Operation: get the current season | 1.1.4, 4.1.12 | P4.1 | With two seasons seeded, the higher is returned with its derived phase, and a test fixes the two lines of each kind of row |
+| P4.4 | MUST | Operation: get the current season | 1.1.4, 4.1.12, 1.6.5 | P4.1, P3.2 | With two seasons seeded, the higher is returned with its derived phase, and a test fixes the two lines of each kind of row |
 | P4.5 | MUST | Production import workflow | 4.1.8, 4.1.9 | P4.3, O1; Tommy runs the bootstrap script | The 99th reaches production by dry run then apply, with no new service revision |
 
 ### P5 App shell
