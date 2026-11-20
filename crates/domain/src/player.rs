@@ -2,6 +2,39 @@
 
 use std::fmt;
 
+/// Identifies a player. Storage assigns it; telemetry names a player by it alone (spec rule 2.7.6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PlayerId(i64);
+
+impl PlayerId {
+    pub const fn new(value: i64) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> i64 {
+        self.0
+    }
+}
+
+/// What a player is called, or will be offered to be called.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlayerName {
+    /// The player has not chosen a name yet. `suggested` is the provider's name for them,
+    /// kept only to prefill the name step (spec rules 3.1.3 and 3.5.1).
+    NotChosen {
+        suggested: Option<String>,
+    },
+    Chosen(DisplayName),
+}
+
+/// A player's account (spec rule 3.5.1).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Player {
+    pub id: PlayerId,
+    pub email: String,
+    pub name: PlayerName,
+}
+
 /// What the identity provider asserts about the person signing in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IdentityClaims {

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM sessions WHERE player_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "00a4287bce5faa11e6217ef32142d0a907e80bd95b25b2eeaf81aeda1570f3bd"
+}

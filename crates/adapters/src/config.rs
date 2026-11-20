@@ -3,11 +3,17 @@
 use std::fmt;
 use std::path::PathBuf;
 
+use application::admin_emails::AdminEmails;
+
 const PORT: &str = "PORT";
 const SPA_DIR: &str = "SPA_DIR";
 const DATABASE_URL: &str = "DATABASE_URL";
 const OTLP_ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
 const TELEMETRY_FLUSH_EACH_REQUEST: &str = "TELEMETRY_FLUSH_EACH_REQUEST";
+const ADMIN_EMAILS: &str = "ADMIN_EMAILS";
+/// Cloud Run sets this on every revision; where it is set, the configuration is production's (spec rule 3.4.2).
+#[cfg(feature = "fake-identity")]
+const CLOUD_RUN_SERVICE: &str = "K_SERVICE";
 
 /// A Postgres connection string. It holds the password, so its `Debug` output hides the value.
 #[derive(Clone, PartialEq, Eq)]
@@ -46,6 +52,8 @@ pub struct ServerConfig {
     /// Where Postgres is. In production it comes from the platform's secret store.
     pub database_url: DatabaseUrl,
     pub telemetry: TelemetryConfig,
+    /// Who is an admin (spec rule 1.6.3). Unset, nobody is.
+    pub admin_emails: AdminEmails,
 }
 
 /// A configuration variable that is missing or malformed. Its message names the variable.
@@ -55,6 +63,11 @@ pub enum ConfigError {
     Missing { variable: &'static str },
     #[error("environment variable {variable} is invalid: {reason}")]
     Invalid { variable: &'static str, reason: String },
+    #[cfg(feature = "fake-identity")]
+    #[error(
+        "this binary was built with fake identity and refuses to run on Cloud Run, where {CLOUD_RUN_SERVICE} is set"
+    )]
+    FakeIdentityInProduction,
 }
 
 impl ServerConfig {
@@ -65,6 +78,10 @@ impl ServerConfig {
 
     /// Reads the configuration through `lookup`, which returns a variable's value if it is set.
     pub fn from_lookup(lookup: impl Fn(&str) -> Option<String>) -> Result<Self, ConfigError> {
+        #[cfg(feature = "fake-identity")]
+        if lookup(CLOUD_RUN_SERVICE).is_some() {
+            return Err(ConfigError::FakeIdentityInProduction);
+        }
         let port = lookup(PORT)
             .ok_or(ConfigError::Missing { variable: PORT })?
             .parse()
@@ -90,11 +107,13 @@ impl ServerConfig {
             export: lookup(OTLP_ENDPOINT).is_some_and(|endpoint| !endpoint.is_empty()),
             flush_each_request,
         };
+        let admin_emails = lookup(ADMIN_EMAILS).map_or_else(AdminEmails::none, |list| AdminEmails::parse(&list));
         Ok(Self {
             port,
             spa_dir,
             database_url,
             telemetry,
+            admin_emails,
         })
     }
 }
@@ -183,6 +202,7 @@ mod tests {
                     export: false,
                     flush_each_request: false,
                 },
+                admin_emails: AdminEmails::none(),
             })
         );
     }
@@ -216,6 +236,40 @@ mod tests {
         .unwrap_err();
 
         assert!(error.to_string().contains("TELEMETRY_FLUSH_EACH_REQUEST"));
+    }
+
+    #[test]
+    fn the_admins_are_the_emails_the_configuration_lists() {
+        let config = ServerConfig::from_lookup(environment(&[
+            ("PORT", "8080"),
+            ("DATABASE_URL", LOCAL_DATABASE),
+            ("ADMIN_EMAILS", "tommy@example.com, second@example.com"),
+        ]))
+        .unwrap();
+
+        assert!(config.admin_emails.contains("second@example.com"));
+        assert!(!config.admin_emails.contains("player@example.com"));
+    }
+
+    #[test]
+    fn without_a_list_nobody_is_an_admin() {
+        let config =
+            ServerConfig::from_lookup(environment(&[("PORT", "8080"), ("DATABASE_URL", LOCAL_DATABASE)])).unwrap();
+
+        assert_eq!(config.admin_emails, AdminEmails::none());
+    }
+
+    #[cfg(feature = "fake-identity")]
+    #[test]
+    fn rule_3_4_2_a_fake_identity_build_refuses_production_configuration() {
+        let on_cloud_run = ServerConfig::from_lookup(environment(&[
+            ("PORT", "8080"),
+            ("DATABASE_URL", LOCAL_DATABASE),
+            ("K_SERVICE", "gold-ballot"),
+        ]));
+
+        assert_eq!(on_cloud_run, Err(ConfigError::FakeIdentityInProduction));
+        assert!(ConfigError::FakeIdentityInProduction.to_string().contains("K_SERVICE"));
     }
 
     #[test]

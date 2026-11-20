@@ -4,8 +4,11 @@ use std::error::Error;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::process::ExitCode;
 
+use std::sync::Arc;
+
+use adapters::clock::SystemClock;
 use adapters::config::ServerConfig;
-use adapters::http::{self, Spa};
+use adapters::http::{self, ApiState, Spa};
 use adapters::postgres;
 use adapters::telemetry::Telemetry;
 use tokio::net::TcpListener;
@@ -57,7 +60,8 @@ async fn serve_until_shutdown(config: ServerConfig, telemetry: Telemetry) -> Res
 
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, config.port))).await?;
     tracing::info!(port = config.port, "listening");
-    axum::serve(listener, http::router(spa, database.clone(), telemetry))
+    let state = ApiState::new(database.clone(), Arc::new(SystemClock), config.admin_emails);
+    axum::serve(listener, http::router(spa, state, telemetry))
         .with_graceful_shutdown(shutdown_requested())
         .await?;
     tracing::info!("every in-flight request has finished");

@@ -13,6 +13,10 @@ FROM rust:1.99.1-slim-trixie AS binary
 WORKDIR /build
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates/ crates/
+# No database is reachable here, so the SQL is checked against the committed metadata (spec rule 2.3.1).
+COPY .sqlx/ .sqlx/
+ENV SQLX_OFFLINE=true
+# No feature is enabled: the release image has no fake identity (spec rule 3.4.1).
 RUN cargo build --release --locked --bin gold-ballot
 
 FROM gcr.io/distroless/cc-debian13:nonroot

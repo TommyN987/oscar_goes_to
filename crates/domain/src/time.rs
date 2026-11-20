@@ -17,4 +17,9 @@ impl UtcInstant {
     pub const fn millis_since_epoch(self) -> i64 {
         self.millis_since_epoch
     }
+
+    /// The instant `millis` milliseconds before this one.
+    pub const fn earlier_by_millis(self, millis: i64) -> Self {
+        Self::from_millis_since_epoch(self.millis_since_epoch.saturating_sub(millis))
+    }
 }

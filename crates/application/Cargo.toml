@@ -7,6 +7,12 @@ publish.workspace = true
 
 [dependencies]
 domain = { version = "0.1.0", path = "../domain" }
+# A session ID is 256 bits from the operating system, stored as its SHA-256 hash (spec rule 3.2.1).
+getrandom = "0.4.3"
+sha2 = "0.11.1"
+thiserror.workspace = true
+# Use cases open spans through `tracing`; OpenTelemetry stays in the adapters (spec rule 2.7.1).
+tracing = "0.1.44"
 
 [lints]
 workspace = true

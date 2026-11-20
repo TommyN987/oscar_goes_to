@@ -8,6 +8,7 @@ pub mod player;
 pub mod results;
 pub mod season;
 pub mod seed_diff;
+pub mod session;
 pub mod standings;
 pub mod time;
 

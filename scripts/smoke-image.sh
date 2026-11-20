@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Starts an image against the Postgres of compose.yaml, which must be running, and checks that it serves
-# the SPA shell with its content security policy, liveness, readiness and a JSON 404
-# (spec rules 2.3.6, 2.4.1, 2.4.2, 2.4.5, 2.7.7, 6.5.1).
+# the SPA shell with its content security policy, liveness, readiness and a JSON 404,
+# and that it has the session operations but no fake sign-in
+# (spec rules 2.3.5, 2.3.6, 2.4.1, 2.4.2, 2.4.5, 2.7.7, 3.4.1, 6.5.1).
 set -euo pipefail
 
 image=$1
@@ -54,4 +55,12 @@ expect "the shell restricts what it may load" "[$shell_policy]" \
 expect "no page may frame the app" "$(curl --silent --include "http://localhost:$port/")" \
     "content-security-policy: frame-ancestors 'none'"
 expect "an unknown API path is a JSON 404" "$(curl --silent "http://localhost:$port/api/nope")" '"code":"not_found"'
+# The first probe shows the session routes are in this image, so the 404 of the second one means
+# the fake identity route was compiled out, not that the API is missing.
+expect "who am I asks a request without a session to sign in" \
+    "$(curl --silent "http://localhost:$port/api/session")" '"code":"not_signed_in"'
+expect "the release image has no fake sign-in" \
+    "$(curl --silent --request POST --header 'Content-Type: application/json' \
+        --data '{"subject":"probe","email":"probe@example.com"}' \
+        "http://localhost:$port/api/fake-identity/sign-in")" '"code":"not_found"'
 expect "the container runs as non-root" "$(docker inspect --format '{{.Config.User}}' "$container")" "nonroot"

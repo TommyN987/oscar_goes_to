@@ -272,6 +272,22 @@ impl Server {
         read_response(self.send_get(path)?)
     }
 
+    /// Sends a request with its own header lines and body, and reads the whole response.
+    #[cfg(feature = "fake-identity")]
+    fn request(&self, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Option<String> {
+        let mut connection = TcpStream::connect(("127.0.0.1", self.port)).ok()?;
+        write!(
+            connection,
+            "{method} {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n"
+        )
+        .ok()?;
+        for (name, value) in headers {
+            write!(connection, "{name}: {value}\r\n").ok()?;
+        }
+        write!(connection, "Content-Length: {}\r\n\r\n{body}", body.len()).ok()?;
+        read_response(connection)
+    }
+
     fn send_sigterm(&self) {
         let status = Command::new("kill")
             .args(["-TERM", &self.process.id().to_string()])
@@ -446,4 +462,81 @@ fn rule_2_7_3_a_log_event_carries_the_trace_id_of_its_request() {
         .expect("the request's span was exported");
     assert_eq!(log_trace_id.len(), 16, "a trace ID is 16 bytes");
     assert_eq!(log_trace_id, request_trace_id);
+}
+
+/// A build with fake identity must never serve production (spec rule 3.4.2).
+#[cfg(feature = "fake-identity")]
+#[test]
+fn rule_3_4_2_a_fake_identity_build_exits_non_zero_on_cloud_run() {
+    let mut process = Command::new(env!("CARGO_BIN_EXE_gold-ballot"))
+        .env("PORT", "0")
+        .env("DATABASE_URL", test_database_url())
+        .env("K_SERVICE", "gold-ballot")
+        .env_remove("OTEL_EXPORTER_OTLP_ENDPOINT")
+        .env_remove("SPA_DIR")
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let status = loop {
+        if let Some(status) = process.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() > deadline {
+            process.kill().unwrap();
+            panic!("the server started although K_SERVICE is set");
+        }
+        thread::sleep(Duration::from_millis(50));
+    };
+
+    let mut explanation = String::new();
+    process.stderr.take().unwrap().read_to_string(&mut explanation).unwrap();
+    assert!(!status.success());
+    assert!(explanation.contains("K_SERVICE"), "the server said: {explanation}");
+}
+
+/// Needs the Postgres named by `DATABASE_URL`, like the other tests.
+#[cfg(feature = "fake-identity")]
+#[test]
+fn rule_2_7_2_a_request_yields_an_http_a_use_case_and_a_sql_span_in_one_trace() {
+    let collector = FakeCollector::start();
+    let database = ScratchDatabase::create("rule_2_7_2_three_span_levels");
+    let server = Server::start_on(&collector, &database.url());
+    let signed_in = server
+        .request(
+            "POST",
+            "/api/fake-identity/sign-in",
+            &[("Content-Type", "application/json")],
+            r#"{"subject":"subject-pat","email":"pat@example.com","name":"Pat Player"}"#,
+        )
+        .unwrap();
+    let cookie = signed_in
+        .lines()
+        .find_map(|line| line.strip_prefix("set-cookie: "))
+        .and_then(|cookie| cookie.split(';').next())
+        .expect("the fake sign-in sets the session cookie");
+
+    let answer = server
+        .request("GET", "/api/session", &[("Cookie", cookie)], "")
+        .unwrap();
+    assert!(answer.starts_with("HTTP/1.1 200"), "who am I answered: {answer}");
+
+    let trace_of_the_request = collector
+        .trace_id_of_span("GET /api/session")
+        .expect("the request's span was exported");
+    for inner_span in ["authenticate", "who_am_i", "postgres.session.use"] {
+        assert_eq!(
+            collector.trace_id_of_span(inner_span).as_ref(),
+            Some(&trace_of_the_request),
+            "the span `{inner_span}` belongs to the request's trace"
+        );
+    }
+    // Players appear by ID only (spec rule 2.7.6), and no token reaches telemetry (spec rule 6.5.6).
+    let token = cookie.split_once('=').unwrap().1;
+    for path in ["/v1/traces", "/v1/logs"] {
+        assert!(!collector.received(path, "pat@example.com"));
+        assert!(!collector.received(path, "Pat Player"));
+        assert!(!collector.received(path, token));
+    }
 }
