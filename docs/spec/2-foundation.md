@@ -15,7 +15,7 @@ Done when a merge to main reaches the public URL through CI, and its trace shows
 | 2.1.5 | MUST | `main` accepts changes only through pull requests with green checks | A direct push to `main` is rejected | F, C |
 | 2.1.6 | MUST | A README takes a fresh clone to a running local app | Following only the README works on a clean checkout | C |
 | 2.1.7 | MUST | The repo is MIT-licensed | A `LICENSE` file holds the MIT text | U |
-| 2.1.8 | SHOULD | `CLAUDE.md` states the architecture rules from design sections 11, 13 and 14 | The file exists and lists them | C |
+| 2.1.8 | SHOULD | `CLAUDE.md` points to rule files in `.claude/rules/` that state the architecture rules from design sections 11, 13 and 14 | The rule files list them, and `CLAUDE.md` names their folder | C |
 
 Rule 2.1.5 requires checks, not approvals: one GitHub account cannot approve its own pull request.
 
