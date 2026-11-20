@@ -18,7 +18,13 @@ if [[ "$workspace_members" != "adapters application domain" ]]; then
 fi
 
 # domain: no IO, async runtime or serialization. It is an allow-list, so a new dependency is a decision.
-domain_allowed=""
+# thiserror derives Display and Error for error types; the other five are what its derive macro is built from.
+domain_allowed="thiserror
+thiserror-impl
+proc-macro2
+quote
+syn
+unicode-ident"
 for dependency in $(dependencies_of domain); do
     if ! grep -qx "$dependency" <<<"$domain_allowed"; then
         echo "domain must not depend on '$dependency'. Allow it in $0 only if it does no IO, async or serialization."

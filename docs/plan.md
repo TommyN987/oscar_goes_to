@@ -34,7 +34,7 @@ It adds no requirement: a rule's text and done-condition live in `docs/spec/`.
 
 ## Decisions taken with the plan
 
-All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, which is Tommy's ruling.
+All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 and D12, which are Tommy's rulings.
 
 | # | Decision | Recorded in |
 |---|---|---|
@@ -47,6 +47,10 @@ All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, whic
 | D7 | A signed-in player without a display name may only read who-am-I, set a name, sign out or delete the account; any other operation returns its own error code (4.8.2.4) | This plan, P3.5.2 |
 | D8 | The end-to-end clock (6.4.3) is a control under the same compile-time feature as fake identity, covered by the release probe | This plan, P6.5 |
 | D9 | P2 holds every pure package-1 rule now, including those first used at M2 | This plan, P2 |
+| D10 | A season has nominees in every category or in none; import refuses anything between (Tommy's ruling) | Spec rule 4.1.4, amended |
+| D11 | The domain has its own instant type, `UtcInstant`, and no time crate: it only compares instants | This plan, P2 |
+| D12 | Leaderboard ties list by display name ignoring case; statistics ties list in seed order | Spec rules 1.4.3 and 4.4.5, amended |
+| D13 | `DisplayName` yields the lowercase key that decides uniqueness; Postgres stores and indexes that key and never computes it | This plan, P2.5 and P3.1 |
 
 ## Open decisions
 
@@ -79,11 +83,15 @@ Pure Rust in `crates/domain`; no dependency.
 | # | Level | Item | Rules | Done when |
 |---|---|---|---|---|
 | P2.1 | MUST | Rule ledger script | 6.6.1 | An untested package-1 MUST rule fails `just check` unless it is on a pending list; a listed rule that has a test also fails; the list is empty at M2 |
-| P2.2 | MUST | Season, category, nominee, phase | 1.1.1, 1.1.2, 1.1.3, 1.1.5 | One test fixes the phase for every combination of inputs |
+| P2.2 | MUST | Season, category, nominee, phase | 1.1.2, 1.1.3, 1.1.5 | One test fixes the phase for every combination of inputs |
 | P2.3 | MUST | Pick validity and editability at an instant | 1.2.2, 1.2.3, 1.2.4, 1.2.5 | 1 ms before lock is editable; at lock the outcome is "locked" |
 | P2.4 | MUST | Winner sets, scoring, ranks, statistics | 1.3.2, 1.3.3, 1.4.1, 1.4.3, 1.4.4, 1.5.1, 6.6.2 | Property tests run in `just check`, and a tie yields 1, 1, 3 |
 | P2.5 | MUST | Verified email and display-name shape | 1.6.1 | An unverified claim is refused; names of 0 or 41 characters, or with a control character, are refused |
 | P2.6 | MUST | Seed diff as a pure function | none; supports P4.3 | Two fixture seasons yield the expected add, change and remove lists, with forced removals flagged |
+
+- Instants are `UtcInstant`, the domain's own type (D11).
+- Rule 1.1.1 moved from P2.2 to P4.2 while P2 was built: its done-condition names the 99th seed, which P4.2 writes.
+  The domain test of its pure half carries no rule number, so the ledger keeps the rule pending.
 
 ### P3 Identity
 
@@ -105,6 +113,7 @@ Needs P2.5 and P1.2.
 | P3.11 | MUST | Privacy note | 3.5.4, 4.8.11.1 | none; P3.5.1 links to it | Its three claims match rules 3.5.1, 1.2.6 and 4.8.9.4 |
 
 - P3.4 does not need Tommy's OAuth client: its tests run against an in-process issuer. Only P3.10 waits for the client.
+- P3.1 stores `DisplayName::uniqueness_key` in its own column under a unique index; Postgres never lowercases a name itself (D13).
 - On 2026-11-20 the deploy workflow passes the tag `:${{ github.sha }}`, not a digest (`.github/workflows/deploy.yml`), so rule 3.4.3 is open.
 
 ### P4 Season data
@@ -114,7 +123,7 @@ Needs P3.1, P2.2 and P2.6.
 | # | Level | Item | Rules | Needs | Done when |
 |---|---|---|---|---|---|
 | P4.1 | MUST | Game schema: seasons, categories, nominees, picks, result entries | 4.1.10, 1.2.1, 1.4.2 | P3.1 | Direct SQL inserts breaking 1.2.1 or 1.2.2 are rejected, and no column stores a score |
-| P4.2 | MUST | Seed format, `seasons/99.toml` without nominees, a fixture season | 4.1.1, 4.1.4, 4.1.7, 2.1.1 | P2.2 | The 99th parses with 24 categories, and a malformed file fails naming the line |
+| P4.2 | MUST | Seed format, `seasons/99.toml` without nominees, a fixture season | 4.1.1, 4.1.4, 4.1.7, 2.1.1, 1.1.1 | P2.2 | The 99th parses with 24 categories, and a malformed file fails naming the line |
 | P4.3 | MUST | Import command: dry run, apply, force | 4.1.2, 4.1.3, 4.1.5, 4.1.6, 1.1.6, 1.1.7, 1.1.8, 3.3.5 | P4.1, P4.2, P2.6 | A failed import changes nothing; a label fix keeps its picks; a removal with picks fails without the force flag |
 | P4.4 | MUST | Operation: get the current season | 1.1.4 | P4.1 | With two seasons seeded, the higher is returned with its derived phase |
 | P4.5 | MUST | Production import workflow | 4.1.8, 4.1.9 | P4.3, O1; Tommy runs the bootstrap script | The 99th reaches production by dry run then apply, with no new service revision |
@@ -132,6 +141,7 @@ Needs P3.5.2 and P4.4.
 ### P6 Ballot
 
 Needs P4 and P5. P6.2 is independent of P6.1.
+The domain refuses a pick in an unknown category as its own case; P6.1 folds that into the five outcomes of rule 4.2.18.
 
 | # | Level | Item | Rules | Needs | Done when |
 |---|---|---|---|---|---|

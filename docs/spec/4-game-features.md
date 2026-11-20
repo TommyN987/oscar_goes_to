@@ -21,7 +21,7 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | 4.1.1 | MUST | Each season is one TOML file in `seasons/`: ceremony number, lock instant with offset, categories in order, nominees with a primary and optional secondary label | The file for the 99th parses, and a malformed file fails naming the line | D, U |
 | 4.1.2 | MUST | Categories and nominees carry author-chosen keys, unique within their parent | Changing a label keeps picks; changing a key counts as remove plus add | C |
 | 4.1.3 | MUST | Import is a CLI command and one transaction | An import that fails halfway changes nothing | D, C |
-| 4.1.4 | MUST | Import validates before writing: unique keys, non-empty labels, at least one category | Each violation exits non-zero with a named error | C |
+| 4.1.4 | MUST | Import validates before writing: unique keys, non-empty labels, at least one category, and nominees in every category or in none | Each violation exits non-zero with a named error | C, U |
 | 4.1.5 | MUST | Import has a dry run that prints what would be added, changed and removed | A dry run writes nothing | C |
 | 4.1.6 | MUST | Removing a category or nominee that has picks or results needs a force flag and reports the count deleted | Without the flag the import fails | C |
 | 4.1.7 | MUST | A file may list categories with no nominees | That season imports and is in phase Upcoming | C |
@@ -77,7 +77,7 @@ Section 4.8, the screen specifications, is in [4.8-screens.md](4.8-screens.md).
 | 4.4.2 | MUST | From lock it shows rank, display name and score, with the viewer's row marked by text and style | A fixture with a tie renders 1, 1, 3 and marks the viewer | F, C |
 | 4.4.3 | MUST | A viewer with no will-win pick is told they are not ranked | That viewer sees the notice and the table | C |
 | 4.4.4 | MUST | Final standings stay visible while the season is current | A Complete season still renders the table | C |
-| 4.4.5 | MUST | Statistics list, per category, every nominee with its should-win count, highest first | Counts match a fixture, including zeros | F |
+| 4.4.5 | MUST | Statistics list, per category, every nominee with its should-win count, highest first, ties in seed order | Counts match a fixture, including zeros | F, U |
 | 4.4.6 | SHOULD | Statistics mark the actual winners once recorded | A category with a result marks them | C |
 | 4.4.7 | WONT | Past seasons in the UI | Only the current season is reachable; older data stays in the database | U |
 | 4.4.8 | WONT | Per-player pages, charts, share images | No such route exists | C |
