@@ -70,6 +70,7 @@ No dependency; parallel with P2.
 | P1.5 | SHOULD | Supply chain and `CLAUDE.md` wording | 2.3.7, 2.1.8 | none | A dependency with a known advisory fails CI, and the update bot opens a pull request |
 
 The journey half of 6.5.1 closes in P3.6, and the display-name half of 6.5.2 in P2.5.
+P1.2 caps a body by its declared length only; P3.3 caps a body that declares none, with the first operation that reads one.
 
 ### P2 Domain core
 

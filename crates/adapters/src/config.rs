@@ -115,6 +115,17 @@ mod tests {
     use super::*;
 
     const LOCAL_DATABASE: &str = "postgres://user:secret@localhost/gold_ballot";
+    const ENV_EXAMPLE: &str = include_str!("../../../.env.example");
+    const JUSTFILE: &str = include_str!("../../../justfile");
+
+    /// Whether `.env.example` has a line for `variable`, set or commented out.
+    fn env_example_names(variable: &str) -> bool {
+        ENV_EXAMPLE.lines().any(|line| {
+            line.trim_start_matches("# ")
+                .split_once('=')
+                .is_some_and(|(name, _)| name == variable)
+        })
+    }
 
     fn environment(variables: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
         move |name| {
@@ -201,6 +212,45 @@ mod tests {
         .unwrap_err();
 
         assert!(error.to_string().contains("TELEMETRY_FLUSH_EACH_REQUEST"));
+    }
+
+    #[test]
+    fn rule_2_1_4_env_example_names_every_variable_the_configuration_reads() {
+        let read = std::cell::RefCell::new(Vec::new());
+        // The required variables get valid values, so no early error hides a later read.
+        ServerConfig::from_lookup(|variable| {
+            read.borrow_mut().push(variable.to_owned());
+            match variable {
+                PORT => Some("8080".into()),
+                DATABASE_URL => Some(LOCAL_DATABASE.into()),
+                _ => None,
+            }
+        })
+        .expect("give every newly required variable a valid value in this test");
+
+        let unnamed: Vec<String> = read
+            .into_inner()
+            .into_iter()
+            .filter(|variable| !env_example_names(variable))
+            .collect();
+        assert!(unnamed.is_empty(), ".env.example does not name {unnamed:?}");
+    }
+
+    #[test]
+    fn rule_2_1_4_env_example_names_every_variable_the_deploy_sets() {
+        let set_by_the_deploy = JUSTFILE
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("--set-secrets="))
+            .expect("the deploy recipe passes --set-secrets")
+            .trim_end_matches('\\')
+            .trim();
+
+        let unnamed: Vec<&str> = set_by_the_deploy
+            .split(',')
+            .map(|assignment| assignment.split_once('=').expect("NAME=secret:version").0)
+            .filter(|variable| !env_example_names(variable))
+            .collect();
+        assert!(unnamed.is_empty(), ".env.example does not name {unnamed:?}");
     }
 
     #[test]

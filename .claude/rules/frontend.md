@@ -26,6 +26,10 @@ paths:
 - Tailwind and daisyUI only; a scoped `<style>` block needs a stated reason.
 - Native elements come first.
 - Every colour lives in the one theme in `src/routes/layout.css`; no colour literal anywhere else.
+  `scripts/check-color-literals.sh` enforces this, and Tailwind's own palette is switched off, so `bg-red-500` paints nothing.
+- The content security policy in `vite.config.ts` allows no inline `<script>`, no `<style>` element in the page, and no third-party host.
+  A component's scoped `<style>` block is unaffected: the build compiles it into the stylesheet.
+  A new kind of resource, such as a font from another origin, needs a directive there first.
 
 ## Copy
 

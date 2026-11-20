@@ -15,6 +15,7 @@ paths:
 - A port exists only where a test needs a fake, a decision was deferred, or the dependency would otherwise point outward.
   The ports are clock, identity provider, results source and storage.
 - Authorization lives in the use cases, through an actor value.
+- There is no unit-of-work abstraction: no use case writes two aggregates atomically.
 - Wire types belong to `adapters`. The domain carries no serialization or OpenAPI annotations.
 - Scores are derived on every read and never stored.
 
@@ -46,5 +47,6 @@ paths:
 - A test that pins a spec rule carries its number in its name: `rule_2_4_5_readiness_fails_without_the_database`.
 - Rules are tested in `domain` with unit and property tests, without IO.
 - Use cases are tested against real Postgres with `#[sqlx::test]`, a fake clock and a fake identity. There is no in-memory storage fake.
+- The fake identity adapter sits behind a compile-time feature that the release image is built without, and CI probes the built image.
 - The router is tested in-process with `tower::ServiceExt::oneshot`, as in `crates/adapters/tests/http.rs`.
 - Check that a new test can fail: break the code it guards once, and see it go red.

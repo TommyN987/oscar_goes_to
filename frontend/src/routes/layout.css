@@ -5,6 +5,14 @@
 }
 
 /*
+ * Tailwind's own palette is switched off, so a class such as bg-red-500 paints nothing
+ * and the theme below is the only source of color (spec rule 4.7.1).
+ */
+@theme {
+	--color-*: initial;
+}
+
+/*
  * The one theme (spec rule 4.7.1): every color lives here, and corners are square.
  * The values are the Theme variables of the Figma file; each comment names the variable.
  * The "--gb-" colors have no daisyUI role; the block below turns them into utilities.
@@ -44,6 +52,7 @@
 	--gb-line-control: #8f8873; /* color/border/control */
 	--gb-neutral-muted: #b8b6a9; /* color/text/inverse-muted */
 	--gb-neutral-line: #57513e; /* color/border/inverse */
+	--gb-scrim: color-mix(in srgb, var(--color-neutral) 60%, transparent); /* color/bg/scrim */
 
 	--radius-selector: 0rem;
 	--radius-field: 0rem;
@@ -60,7 +69,7 @@
 
 /*
  * Utilities for the colors daisyUI has no role for: text-muted, bg-selected, border-line,
- * border-line-control, text-neutral-muted and border-neutral-line.
+ * border-line-control, text-neutral-muted, border-neutral-line and bg-scrim.
  * Each one points at the theme above, so no color value is written here.
  * In hand-written CSS read var(--gb-muted) and friends; Tailwind emits --color-muted only when used.
  */
@@ -71,4 +80,7 @@
 	--color-line-control: var(--gb-line-control);
 	--color-neutral-muted: var(--gb-neutral-muted);
 	--color-neutral-line: var(--gb-neutral-line);
+	--color-scrim: var(--gb-scrim);
+	/* daisyUI tints a few shadows with Tailwind's black, which the reset above removed. */
+	--color-black: var(--color-neutral);
 }

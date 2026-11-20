@@ -17,7 +17,27 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			// A static SPA: the Rust binary serves this fallback page for every non-file path.
-			adapter: adapter({ fallback: '200.html' })
+			adapter: adapter({ fallback: '200.html' }),
+			// The content security policy (spec rule 6.5.1). SvelteKit writes it into the fallback page as a
+			// <meta> tag and adds the hash of its own inline script, so no other inline script can run.
+			// The server sends `frame-ancestors`, which a <meta> policy cannot carry
+			// (crates/adapters/src/http/security_headers.rs).
+			csp: {
+				mode: 'hash',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self'],
+					// Style attributes stay allowed: SvelteKit hides its route announcer with one,
+					// and an attribute, unlike a <style> element, cannot hold a selector or load anything.
+					'style-src-attr': ['unsafe-inline'],
+					// Vite inlines small images, the favicon among them, as data URLs, and so does daisyUI.
+					'img-src': ['self', 'data:'],
+					'object-src': ['none'],
+					'base-uri': ['self'],
+					'form-action': ['self']
+				}
+			}
 		})
 	],
 	server: {

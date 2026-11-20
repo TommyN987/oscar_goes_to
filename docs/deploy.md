@@ -89,6 +89,17 @@ gcloud run services update gold-ballot --region=europe-west1 --no-invoker-iam-ch
 
 Done on 2026-11-18; the service has answered the public since.
 
+## Repository settings (rules 2.1.4 and 2.1.5)
+
+Read from the GitHub API on 2026-11-20:
+
+- `main` takes changes only through pull requests, with no approval required.
+  The checks `rust`, `frontend`, `contract` and `image` must pass on an up-to-date branch.
+  The rule binds administrators too, and force pushes and deletion are off.
+- Secret scanning and push protection are on.
+
+The `supply-chain` check was added to CI after that reading and is not among the required checks yet.
+
 ## M0 measurements (rule 2.8.3)
 
 | What | Value | Measured |

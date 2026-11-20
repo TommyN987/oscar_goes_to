@@ -12,6 +12,7 @@ You need:
 - [rustup](https://rustup.rs); the Rust version in `rust-toolchain.toml` installs itself
 - Node.js at the version in `.node-version`, and pnpm at the version in `frontend/package.json`
 - [just](https://just.systems), [cargo-watch](https://crates.io/crates/cargo-watch) and [cargo-nextest](https://nexte.st), which runs the Rust tests
+- [cargo-deny](https://embarkstudios.github.io/cargo-deny/), which checks the Rust dependencies for advisories and licenses
 - Docker with Compose, for the local Postgres and Grafana and for `just image`
 - `gcloud`, only for `just deploy` and `just rollback`
 
@@ -33,6 +34,7 @@ just check
 ```
 
 This runs every check CI runs. The Rust tests use the local Postgres, each in a database of its own.
+The dependency checks (`just check-supply-chain`) fetch the advisory databases, so they need the network.
 The component tests need a browser once: `cd frontend && pnpm exec playwright install chromium`.
 
 After changing an API handler, regenerate the contract and commit the result:

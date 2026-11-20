@@ -110,7 +110,6 @@ Tommy accepted these on 2026-11-20. [The plan](../plan.md) lists them as decisio
 ## Still unverified (T)
 
 - Free custom-domain mapping on Cloud Run (2.6.2).
-- A content security policy that fits a SvelteKit static SPA (6.5.1).
 - Whether Google's sign-in branding rules apply to the button (4.8.1.5).
 - Grafana Cloud alerting on the free tier (5.7).
 - Every item on the design's unverified list (2.8.4).

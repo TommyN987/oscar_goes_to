@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     NotFound,
+    PayloadTooLarge,
     DatabaseUnavailable,
 }
 
@@ -18,6 +19,7 @@ impl ErrorCode {
     fn status(self) -> StatusCode {
         match self {
             Self::NotFound => StatusCode::NOT_FOUND,
+            Self::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
             Self::DatabaseUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
