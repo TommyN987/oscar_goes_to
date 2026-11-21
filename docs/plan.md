@@ -13,6 +13,8 @@ It adds no requirement: a rule's text and done-condition live in `docs/spec/`.
 - **Rules:** the spec rules the item owns. A rule has exactly one owner, even when other items touch it.
 - **Needs:** items, decisions or actions by Tommy that must come first.
 - **Done when:** the check that closes the item. Each owned rule's own done-condition still applies.
+- **Closed:** a rule is closed only when a test proves its done-condition, read literally (D22).
+  A rule an item can prove only in part belongs to the later item that proves the rest.
 - **Operations:** the API operations from spec rule 4.6.1 that the item adds.
 
 ## What decides the order
@@ -35,6 +37,7 @@ It adds no requirement: a rule's text and done-condition live in `docs/spec/`.
 ## Decisions taken with the plan
 
 All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 and D12, which are Tommy's rulings; D14 was accepted the same day, after P2's first commit, D16 to D18 before P3.1, and D19 to D21 before P3.2.
+D22 is Tommy's ruling of 2026-11-21, after the review of P3.2.
 
 | # | Decision | Recorded in |
 |---|---|---|
@@ -59,6 +62,7 @@ All were proposed by Claude and accepted by Tommy on 2026-11-20, except D5, D10 
 | D19 | Production configuration is Cloud Run's `K_SERVICE` being set; a fake-identity build refuses to start under it | Spec rule 3.4.2, amended |
 | D20 | The `IdentityProvider` port arrives with P3.4, which knows the authorization-code exchange. Until then the fake adapter is one feature-gated route that hands chosen claims to the sign-in use case | This plan, P3.2 |
 | D21 | `ADMIN_EMAILS` is optional and unset means no admins; its production secret arrives with P3.10's bootstrap run, before which nobody can hold a session in production | This plan, P3.2 and P3.10 |
+| D22 | A rule is closed only when a test proves its done-condition; a partial proof leaves it open at the item that completes it. For rules 1.6.3 and 3.3.4 at P3.10, Tommy's observation on the deployed app counts as the proof | This plan, "How to read an item"; `.claude/rules/backend.md` |
 
 ## Open decisions
 
@@ -108,22 +112,27 @@ Needs P2.5 and P1.2.
 | # | Level | Item | Rules | Needs | Done when |
 |---|---|---|---|---|---|
 | P3.1 | MUST | Identity schema, the first migration | 3.5.1, 2.4.6, 2.3.1 | none | The personal columns equal the rule's list; the migration applies exactly once; stale sqlx metadata fails CI |
-| P3.2 | MUST | Sessions on the fake identity adapter. Operations: who am I, sign out | 3.2.1–3.2.5, 3.3.4, 1.6.3, 3.4.1, 3.4.2, 2.2.3, 2.3.5, 2.7.2 | P3.1 | A session is valid on day 89 and refused on day 91; the release image returns 404 on the fake route; one trace shows HTTP, use-case and SQL spans |
+| P3.2 | MUST | Sessions on the fake identity adapter. Operations: who am I, sign out | 3.2.1–3.2.4, 3.4.1, 3.4.2, 2.2.3, 2.3.5 | P3.1 | A session is valid on day 89 and refused on day 91; the release image returns 404 on the fake route; at a fake collector, one request's HTTP, use-case and SQL spans nest in one trace |
 | P3.3 | MUST | Request guards and the OpenAPI walk | 3.2.6, 3.3.2, 3.3.3, 4.6.1, 4.6.2, 6.4.1 | P3.2 | One test walks `openapi.json`: 401 without a cookie, 403 for a player on admin routes, every error references the shared shape, and no operation falls outside the 4.6.1 list |
 | P3.4 | MUST | Google adapter. Operations: start sign-in, sign-in callback | 3.1.1, 3.1.2, 3.1.4–3.1.7, 2.3.6 | P3.2; current documentation of the OIDC crate | Five token tests, a wrong `state` and three failure paths are refused against an in-process issuer; the release image redirects to Google |
 | P3.5.1 | MUST | Sign-in page, failure messages, self-hosted fonts | 4.5.1, 4.8.1.1–4.8.1.4, 4.8.10.2–4.8.10.4, 6.4.4, 4.7.2 | P3.4, O2 | A signed-out visit to any page ends there, and returns to that page after sign-in |
 | P3.5.2 | MUST | Name step. Operation: set display name | 3.1.3, 1.6.2, 4.5.2, 4.8.2.1–4.8.2.5 | P3.5.1, D7 | A duplicate differing only in case shows "That name is taken. Try another.", and the field keeps the typed value |
-| P3.6 | MUST | End-to-end harness and page registry | 2.3.4, 6.2.1, 6.2.2, 6.3.1, 4.7.5, 4.7.3, 2.7.6, 6.5.6 | P3.5.1 | A sign-in journey passes in three browsers; every registered page passes at 360, 768 and 1280 with no serious scan issue; exported spans hold no email, cookie or token |
+| P3.6 | MUST | End-to-end harness and page registry | 2.3.4, 6.2.1, 6.2.2, 6.3.1, 4.7.5, 4.7.3, 2.7.6, 6.5.6, 2.7.2 | P3.5.1 | A sign-in journey passes in three browsers; every registered page passes at 360, 768 and 1280 with no serious scan issue; exported spans hold no email, cookie or token; a test reads one request's trace back from the local Grafana stack and finds the HTTP, use-case and SQL levels |
 | P3.7 | MUST | Settings and deletion. Operation: delete my account | 1.6.6, 3.5.2, 4.5.7, 4.8.9.1–4.8.9.4 | P3.5.2 | After deletion no row references the player, and the old cookie is refused |
-| P3.8 | MUST | Admin players. Operations: list players, remove a player | 1.6.7, 3.5.3, 4.8.8.1–4.8.8.3 | P3.3 | A removed player's next sign-in ends on the refusal page, and the admin's own row has no Remove action |
+| P3.8 | MUST | Admin players. Operations: list players, remove a player | 1.6.7, 3.5.3, 4.8.8.1–4.8.8.3, 3.2.5 | P3.3, P3.7 | A removed player's next sign-in ends on the refusal page and their old cookie is refused, and the admin's own row has no Remove action |
 | P3.9 | SHOULD | Session purge, rate limits, blocked list, Google button branding. Operation: list blocked accounts | 3.2.7, 6.5.3, 4.8.8.4, 4.8.1.5 | P3.8 | Each rule's own done-condition |
-| P3.10 | MUST | Google sign-in on the deployed app | 3.1.8, 3.4.3 | Tommy: OAuth client, consent screen, a bootstrap run that also stores `ADMIN_EMAILS` (D21) | An account on no test list signs in and stays signed in after a redeploy; an address in `ADMIN_EMAILS` is an admin on the deployed app (rules 1.6.3 and 3.3.4 on a real deploy); the workflow passes a digest |
+| P3.10 | MUST | Google sign-in on the deployed app | 3.1.8, 3.4.3, 1.6.3, 3.3.4 | Tommy: OAuth client, consent screen, a bootstrap run that also stores `ADMIN_EMAILS` (D21) | An account on no test list signs in and stays signed in after a redeploy; Tommy observes that an address in `ADMIN_EMAILS` is an admin on the deployed app, and that a redeploy without it is not (D22); the workflow passes a digest |
 | P3.11 | MUST | Privacy note | 3.5.4, 4.8.11.1 | none; P3.5.1 links to it | Its three claims match rules 3.5.1, 1.2.6 and 4.8.9.4 |
 
 - Rule 3.3.1 moved from P3.2 to P8.1 before P3.2 was built, with Tommy's approval: its done-condition names the record-result use case.
   P3.2 builds the actor type, and its sign-out refuses an anonymous actor with no HTTP involved.
-- P3.2 has no `IdentityProvider` trait (D20), and `ADMIN_EMAILS` reaches no deploy until P3.10 (D21):
-  P3.2 shows rules 1.6.3 and 3.3.4 with two configurations in one test, and P3.10 shows them on the deployed app.
+  Sign-in and authenticate take no actor, because they establish it. The rule is package 3's, yet closes with P8.1 at M2.
+- Four rules left P3.2 after its review, under D22; [the review](reviews/p3.2-sessions.md) has the findings.
+  - **1.6.3 and 3.3.4** went to P3.10: their done-conditions name the deploy, and no deploy carries `ADMIN_EMAILS` before it (D21).
+    When Tommy has made the observation, P3.2's two-configuration test takes the name `rule_1_6_3_…` and the ledger line leaves.
+  - **3.2.5** went to P3.8: P3.2 proves sign-out, P3.7 deletion and P3.8 removal, so P3.8 needs P3.7.
+  - **2.7.2** went to P3.6: P3.2's test reads a fake collector, and the rule says "in Grafana".
+- P3.2 has no `IdentityProvider` trait (D20).
 - P3.4 does not need Tommy's OAuth client: its tests run against an in-process issuer. Only P3.10 waits for the client.
 - P3.1 stores `DisplayName::uniqueness_key` in its own column under a unique index; Postgres never lowercases a name itself (D13).
 - Rule 1.6.5 moved from P3.1 to P4.4 while P3.1 was built, with Tommy's approval: its done-condition needs a sign-in and two seasons,

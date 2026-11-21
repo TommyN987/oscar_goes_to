@@ -130,6 +130,8 @@ async fn rule_3_2_3_a_sign_in_ends_the_presented_session_and_no_other(database: 
     assert!(matches!(actor_of(&phone, &storage, &clock).await, Actor::Player(_)));
 }
 
+/// Sign-out's part of spec rule 3.2.5. Deletion's part comes with plan item P3.7,
+/// and P3.8 closes the rule with removal's.
 #[sqlx::test]
 async fn rule_3_2_5_sign_out_ends_all_of_the_players_sessions(database: PgPool) {
     let storage = PostgresStorage::new(database);
@@ -203,9 +205,11 @@ async fn a_later_sign_in_keeps_the_player_and_the_display_name_and_refreshes_the
     );
 }
 
-/// Each call stands for a request under the configuration of the deploy that serves it (spec rule 3.3.4).
+/// The part of spec rules 1.6.3 and 3.3.4 that needs no deploy: each call stands for a request,
+/// and its admin status follows the configuration it is given. Plan item P3.10 closes both rules
+/// on the deployed app; this test takes the name `rule_1_6_3_…` then, and the ledger line leaves.
 #[sqlx::test]
-async fn rule_1_6_3_admin_rights_follow_the_configured_emails(database: PgPool) {
+async fn admin_rights_follow_the_configured_emails(database: PgPool) {
     let storage = PostgresStorage::new(database);
     let clock = FakeClock::on_day(0);
     let token = sign_in_on_a_new_device(&pat(), &storage, &clock).await;

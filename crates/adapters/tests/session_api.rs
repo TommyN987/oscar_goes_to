@@ -161,6 +161,7 @@ async fn the_session_cookie_is_found_among_other_cookies(database: PgPool) {
     assert_eq!(answer.status(), StatusCode::OK);
 }
 
+/// Sign-out's part of spec rule 3.2.5; plan item P3.8 closes the rule.
 #[sqlx::test]
 async fn rule_3_2_5_after_sign_out_the_old_cookie_is_refused(database: PgPool) {
     let app = app(database);
@@ -195,6 +196,7 @@ async fn rule_3_2_3_after_a_sign_in_the_previous_cookie_is_refused(database: PgP
 }
 
 /// Two routers stand for two deploys with different configuration, serving one session.
+/// No deploy carries the configuration yet; plan item P3.10 closes spec rule 3.3.4 on the deployed app.
 #[sqlx::test]
 async fn rule_3_3_4_admin_status_is_evaluated_on_each_request(database: PgPool) {
     let pat_is_an_admin = app_with_admins(database.clone(), AdminEmails::parse("pat@example.com"));
