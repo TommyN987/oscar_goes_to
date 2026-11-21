@@ -108,6 +108,25 @@ impl FakeCollector {
         })
     }
 
+    /// The description on the status of the exported span named `name`, which a span has once it failed.
+    #[cfg(feature = "fake-identity")]
+    fn failure_of_span(&self, name: &str) -> Option<String> {
+        self.exported_records("/v1/traces").into_iter().find_map(|span| {
+            let description = first_field(first_field(&span, SPAN_STATUS)?, STATUS_MESSAGE)?;
+            (first_field(&span, SPAN_NAME)? == name.as_bytes())
+                .then(|| String::from_utf8_lossy(description).into_owned())
+        })
+    }
+
+    /// How many exported log records carry `text`, in their body or in an attribute.
+    #[cfg(feature = "fake-identity")]
+    fn log_records_with(&self, text: &str) -> usize {
+        self.exported_records("/v1/logs")
+            .iter()
+            .filter(|log_record| log_record.windows(text.len()).any(|window| window == text.as_bytes()))
+            .count()
+    }
+
     /// The trace ID on the exported log record whose body is `message`, if that record carries one.
     fn trace_id_of_log(&self, message: &str) -> Option<Vec<u8>> {
         self.exported_records("/v1/logs").into_iter().find_map(|log_record| {
@@ -156,6 +175,10 @@ const SPAN_ID: u64 = 2;
 #[cfg(feature = "fake-identity")]
 const SPAN_PARENT_ID: u64 = 4;
 const SPAN_NAME: u64 = 5;
+#[cfg(feature = "fake-identity")]
+const SPAN_STATUS: u64 = 15;
+#[cfg(feature = "fake-identity")]
+const STATUS_MESSAGE: u64 = 2;
 const LOG_RECORD_BODY: u64 = 5;
 const LOG_RECORD_TRACE_ID: u64 = 9;
 const ANY_VALUE_STRING: u64 = 1;
@@ -563,4 +586,40 @@ fn rule_2_7_2_a_request_nests_an_http_a_use_case_and_a_sql_span() {
         assert!(!collector.received(path, "Pat Player"));
         assert!(!collector.received(path, token));
     }
+}
+
+/// Needs the Postgres named by `DATABASE_URL`, like the other tests.
+#[cfg(feature = "fake-identity")]
+#[test]
+fn a_storage_failure_is_logged_once_and_marks_the_sql_span_that_failed() {
+    let collector = FakeCollector::start();
+    let database = ScratchDatabase::create("storage_failure_in_a_request");
+    let server = Server::start_on(&collector, &database.url());
+    let signed_in = server
+        .request(
+            "POST",
+            "/api/fake-identity/sign-in",
+            &[("Content-Type", "application/json")],
+            r#"{"subject":"subject-pat","email":"pat@example.com","name":"Pat Player"}"#,
+        )
+        .unwrap();
+    let cookie = signed_in
+        .lines()
+        .find_map(|line| line.strip_prefix("set-cookie: "))
+        .and_then(|cookie| cookie.split(';').next())
+        .expect("the fake sign-in sets the session cookie");
+
+    // Storage fails from here on: its database is gone.
+    database.remove();
+    let answer = server
+        .request("GET", "/api/session", &[("Cookie", cookie)], "")
+        .unwrap();
+
+    assert!(answer.starts_with("HTTP/1.1 500"), "who am I answered: {answer}");
+    assert!(answer.contains(r#""code":"internal""#), "who am I answered: {answer}");
+    let failure = collector
+        .failure_of_span("postgres.session.use")
+        .expect("the SQL span that failed says so");
+    assert!(failure.contains("storage failed"), "the span says: {failure}");
+    assert_eq!(collector.log_records_with("storage failed"), 1);
 }

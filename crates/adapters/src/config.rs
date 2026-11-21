@@ -107,7 +107,7 @@ impl ServerConfig {
             export: lookup(OTLP_ENDPOINT).is_some_and(|endpoint| !endpoint.is_empty()),
             flush_each_request,
         };
-        let admin_emails = lookup(ADMIN_EMAILS).map_or_else(AdminEmails::none, |list| AdminEmails::parse(&list));
+        let admin_emails = lookup(ADMIN_EMAILS).map_or_else(|| Ok(AdminEmails::none()), |list| admin_emails(&list))?;
         Ok(Self {
             port,
             spa_dir,
@@ -116,6 +116,36 @@ impl ServerConfig {
             admin_emails,
         })
     }
+}
+
+/// Reads the admins' addresses from a comma-separated list. Blank entries are ignored.
+///
+/// The error names an entry by its position, never by its text, which is someone's address.
+fn admin_emails(list: &str) -> Result<AdminEmails, ConfigError> {
+    let mut emails = Vec::new();
+    for (index, entry) in list.split(',').enumerate() {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        if !is_one_email_address(entry) {
+            return Err(ConfigError::Invalid {
+                variable: ADMIN_EMAILS,
+                reason: format!("entry {} is not one email address", index + 1),
+            });
+        }
+        emails.push(entry);
+    }
+    Ok(AdminEmails::new(emails))
+}
+
+/// Whether `entry` has the outline of one address: text, one `@`, text, and no whitespace.
+/// It catches a list written with the wrong separator; it does not check that the address exists.
+fn is_one_email_address(entry: &str) -> bool {
+    let mut parts = entry.split('@');
+    let outline = (parts.next(), parts.next(), parts.next());
+    matches!(outline, (Some(local), Some(domain), None) if !local.is_empty() && !domain.is_empty())
+        && !entry.contains(char::is_whitespace)
 }
 
 #[cfg(test)]
@@ -252,6 +282,41 @@ mod tests {
     }
 
     #[test]
+    fn blank_entries_in_the_admin_list_are_ignored() {
+        let config = ServerConfig::from_lookup(environment(&[
+            ("PORT", "8080"),
+            ("DATABASE_URL", LOCAL_DATABASE),
+            ("ADMIN_EMAILS", " tommy@example.com ,, "),
+        ]))
+        .unwrap();
+
+        assert_eq!(config.admin_emails, AdminEmails::new(["tommy@example.com"]));
+    }
+
+    /// A list that is silently misread would leave the game without an admin, or with a wrong one.
+    #[test]
+    fn rule_2_4_3_an_admin_entry_that_is_not_one_address_fails_the_start() {
+        for list in [
+            "tommy@example.com;second@example.com",
+            "tommy@example.com, second.example.com",
+            "tommy@example.com, sec ond@example.com",
+            "tommy@example.com, @example.com",
+        ] {
+            let error = ServerConfig::from_lookup(|variable| match variable {
+                "PORT" => Some("8080".into()),
+                "DATABASE_URL" => Some(LOCAL_DATABASE.into()),
+                "ADMIN_EMAILS" => Some(list.into()),
+                _ => None,
+            })
+            .unwrap_err();
+
+            assert!(error.to_string().contains("ADMIN_EMAILS"), "for `{list}`: {error}");
+            // The message names the entry by its position: its text is someone's address (spec rule 2.7.6).
+            assert!(!error.to_string().contains("example.com"), "for `{list}`: {error}");
+        }
+    }
+
+    #[test]
     fn without_a_list_nobody_is_an_admin() {
         let config =
             ServerConfig::from_lookup(environment(&[("PORT", "8080"), ("DATABASE_URL", LOCAL_DATABASE)])).unwrap();
@@ -292,6 +357,18 @@ mod tests {
             .filter(|variable| !env_example_names(variable))
             .collect();
         assert!(unnamed.is_empty(), ".env.example does not name {unnamed:?}");
+    }
+
+    /// The part of spec rule 2.2.3 a recipe's text can show: `just dev` builds the backend with fake identity.
+    #[test]
+    fn rule_2_2_3_just_dev_builds_the_backend_with_fake_identity() {
+        let recipe_command = JUSTFILE
+            .lines()
+            .skip_while(|line| !line.starts_with("dev-backend:"))
+            .nth(1)
+            .expect("the dev-backend recipe has a command");
+
+        assert!(recipe_command.contains("--features fake-identity"), "{recipe_command}");
     }
 
     #[test]

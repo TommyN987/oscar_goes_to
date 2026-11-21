@@ -9,9 +9,15 @@ use domain::time::UtcInstant;
 use sqlx::types::time::OffsetDateTime;
 
 use super::PostgresStorage;
+use crate::telemetry;
 
+/// Turns a failure into the port's error. It logs the failure, once, and marks the span of the storage call
+/// as failed, so a trace shows which statement it was. Call it inside that span.
 fn storage_error(cause: impl Into<Box<dyn Error + Send + Sync>>) -> StorageError {
-    StorageError::from(cause.into())
+    let error = StorageError::from(cause.into());
+    tracing::error!(error = &error as &dyn Error, "storage failed");
+    telemetry::mark_current_span_failed(&error.to_string());
+    error
 }
 
 /// Postgres keeps microseconds, so every instant the application writes comes back unchanged.
@@ -22,11 +28,15 @@ fn timestamp(instant: UtcInstant) -> Result<OffsetDateTime, StorageError> {
 
 impl PlayerStore for PostgresStorage {
     #[tracing::instrument(
-        name = "postgres.player.record_sign_in",
+        name = "postgres.player.add_or_refresh",
         skip_all,
         fields(otel.kind = "client", db.system.name = "postgresql")
     )]
-    async fn record_sign_in(&self, identity: &VerifiedIdentity, now: UtcInstant) -> Result<PlayerId, StorageError> {
+    async fn add_or_refresh_player(
+        &self,
+        identity: &VerifiedIdentity,
+        now: UtcInstant,
+    ) -> Result<PlayerId, StorageError> {
         sqlx::query_scalar!(
             "INSERT INTO players (google_subject, email, suggested_name, created_at)
              VALUES ($1, $2, $3, $4)

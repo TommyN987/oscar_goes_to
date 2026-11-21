@@ -86,12 +86,12 @@ pub fn presented_token(headers: &HeaderMap) -> Option<SessionToken> {
         .find_map(token_from_hex)
 }
 
-/// Reads 64 lowercase hexadecimal digits, the only form `session_cookie` writes.
+/// Reads a token's bytes as lowercase hexadecimal digits, two to a byte: the only form `session_cookie` writes.
 fn token_from_hex(digits: &[u8]) -> Option<SessionToken> {
     let (pairs, []) = digits.as_chunks::<2>() else {
         return None;
     };
-    let mut bytes = [0; 32];
+    let mut bytes = [0; SessionToken::BYTES];
     if pairs.len() != bytes.len() {
         return None;
     }

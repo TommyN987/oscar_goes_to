@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use opentelemetry::KeyValue;
 use opentelemetry::metrics::{Histogram, MeterProvider};
-use opentelemetry::trace::TracerProvider;
+use opentelemetry::trace::{Status, TracerProvider};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, MetricExporter, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::Resource;
@@ -20,6 +20,7 @@ use opentelemetry_sdk::metrics::SdkMeterProvider;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use tracing::Level;
 use tracing::level_filters::LevelFilter;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::Layer;
 use tracing_subscriber::filter::Targets;
 use tracing_subscriber::layer::SubscriberExt;
@@ -28,6 +29,12 @@ use tracing_subscriber::util::SubscriberInitExt;
 use crate::config::TelemetryConfig;
 
 const SERVICE_NAME: &str = "gold-ballot";
+
+/// Marks the span the caller is in as failed, so a trace shows which step it was and why.
+/// `description` must hold no personal data (spec rule 2.7.6). Without an exporter this does nothing.
+pub fn mark_current_span_failed(description: &str) {
+    tracing::Span::current().set_status(Status::error(description.to_owned()));
+}
 
 /// The longest one export may take. Shutdown flushes three signals in turn and has 10 s on Cloud Run,
 /// so a backend that never answers costs 6 s at most.

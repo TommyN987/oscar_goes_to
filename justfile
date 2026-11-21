@@ -55,10 +55,12 @@ dev-frontend:
 check: check-rust check-frontend check-contract check-supply-chain
 
 # Format, lints as errors, tests against local Postgres, the architecture rules, the rule ledger and the sqlx metadata.
-# Lints and tests run with every feature, so the fake identity adapter is covered; `smoke-image` probes the build without it.
+# Tests run with every feature, so the fake identity adapter is covered; `smoke-image` probes the build without it.
+# Lints run twice: with every feature, and as the release image is built, with none.
 check-rust: postgres && check-sqlx
     cargo fmt --all --check
     cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo nextest run --workspace --all-features --locked
     scripts/check-architecture.sh
     scripts/check-rule-ledger.sh
