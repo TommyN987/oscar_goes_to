@@ -261,6 +261,10 @@ impl Season {
     ///
     /// `nominee` must be one of this season's; by the invariant its film is then listed.
     /// A nominee of another season is a caller's bug, and panics.
+    #[expect(
+        clippy::expect_used,
+        reason = "the panic is this function's documented answer to a nominee of another season"
+    )]
     pub fn film_of(&self, nominee: &Nominee) -> &Film {
         self.film(&nominee.film)
             .expect("a nominee of this season names a listed film")

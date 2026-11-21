@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use application::session::{NotSignedIn, SignOutError};
+use application::session::{NotSignedIn, SignInError, SignOutError};
 use application::storage::StorageError;
 use axum::Json;
 use axum::http::StatusCode;
@@ -54,6 +54,9 @@ impl IntoResponse for ApiError {
     }
 }
 
+/// What a client is told when the failure is the server's own.
+const SERVER_FAILED: &str = "Something went wrong. Try again.";
+
 impl From<NotSignedIn> for ApiError {
     fn from(_: NotSignedIn) -> Self {
         Self::new(ErrorCode::NotSignedIn, "Sign in to continue.")
@@ -64,7 +67,19 @@ impl From<NotSignedIn> for ApiError {
 impl From<StorageError> for ApiError {
     fn from(error: StorageError) -> Self {
         tracing::error!(error = &error as &dyn Error, "storage failed");
-        Self::new(ErrorCode::Internal, "Something went wrong. Try again.")
+        Self::new(ErrorCode::Internal, SERVER_FAILED)
+    }
+}
+
+impl From<SignInError> for ApiError {
+    fn from(error: SignInError) -> Self {
+        match error {
+            SignInError::NoToken(cause) => {
+                tracing::error!(error = &cause as &dyn Error, "no session token could be generated");
+                Self::new(ErrorCode::Internal, SERVER_FAILED)
+            }
+            SignInError::Storage(failure) => failure.into(),
+        }
     }
 }
 

@@ -4,6 +4,11 @@ use std::fmt;
 
 use sha2::{Digest, Sha256};
 
+/// The operating system gave no random bytes, so no session can be issued.
+#[derive(Debug, thiserror::Error)]
+#[error("the operating system gave no random bytes: {0}")]
+pub struct RandomnessUnavailable(#[from] getrandom::Error);
+
 /// A session ID: 256 random bits that only the browser holds.
 ///
 /// Its `Debug` output hides the value, so it cannot reach a log or a span (spec rule 6.5.6).
@@ -12,13 +17,10 @@ pub struct SessionToken([u8; 32]);
 
 impl SessionToken {
     /// A new token from the operating system's random source.
-    ///
-    /// # Panics
-    /// If the operating system has no randomness to give; no session can be issued safely then.
-    pub fn generate() -> Self {
+    pub fn generate() -> Result<Self, RandomnessUnavailable> {
         let mut bytes = [0; 32];
-        getrandom::fill(&mut bytes).expect("the operating system provides randomness");
-        Self(bytes)
+        getrandom::fill(&mut bytes)?;
+        Ok(Self(bytes))
     }
 
     /// The token a browser sent back.
@@ -59,10 +61,10 @@ mod tests {
 
     #[test]
     fn rule_3_2_1_every_token_is_new() {
-        assert_ne!(
-            SessionToken::generate().expose_bytes(),
-            SessionToken::generate().expose_bytes()
-        );
+        let first = SessionToken::generate().unwrap();
+        let second = SessionToken::generate().unwrap();
+
+        assert_ne!(first.expose_bytes(), second.expose_bytes());
     }
 
     #[test]

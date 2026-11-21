@@ -58,11 +58,13 @@ async fn serve_until_shutdown(config: ServerConfig, telemetry: Telemetry) -> Res
         .await
         .map_err(|error| format!("cannot migrate the database: {error}"))?;
 
+    let shutdown_requested =
+        shutdown_signals().map_err(|error| format!("cannot listen for the shutdown signals: {error}"))?;
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, config.port))).await?;
     tracing::info!(port = config.port, "listening");
     let state = ApiState::new(database.clone(), Arc::new(SystemClock), config.admin_emails);
     axum::serve(listener, http::router(spa, state, telemetry))
-        .with_graceful_shutdown(shutdown_requested())
+        .with_graceful_shutdown(shutdown_requested)
         .await?;
     tracing::info!("every in-flight request has finished");
 
@@ -75,13 +77,16 @@ fn print_openapi() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Resolves on SIGTERM (Cloud Run stopping the instance) or SIGINT (Ctrl-C).
-/// In-flight requests then finish before the process exits (spec rule 2.4.4).
-async fn shutdown_requested() {
-    let mut terminate = signal(SignalKind::terminate()).expect("a SIGTERM handler can be installed");
-    let mut interrupt = signal(SignalKind::interrupt()).expect("a SIGINT handler can be installed");
-    tokio::select! {
-        _ = terminate.recv() => {}
-        _ = interrupt.recv() => {}
-    }
+/// Starts listening for SIGTERM (Cloud Run stopping the instance) and SIGINT (Ctrl-C).
+/// The returned future resolves on the first of them;
+/// in-flight requests then finish before the process exits (spec rule 2.4.4).
+fn shutdown_signals() -> std::io::Result<impl Future<Output = ()>> {
+    let mut terminate = signal(SignalKind::terminate())?;
+    let mut interrupt = signal(SignalKind::interrupt())?;
+    Ok(async move {
+        tokio::select! {
+            _ = terminate.recv() => {}
+            _ = interrupt.recv() => {}
+        }
+    })
 }

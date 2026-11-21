@@ -26,6 +26,12 @@ pub fn pick_outcome(pick: &NomineeKey, winners: Option<&WinnerSet>) -> PickOutco
     }
 }
 
+/// A count as the standings carry it. A season has far fewer categories and players than `u32::MAX`,
+/// so the cap is never reached.
+fn count_as_u32(count: usize) -> u32 {
+    u32::try_from(count).unwrap_or(u32::MAX)
+}
+
 /// One point for every category of `season` whose will-win pick is among its winners.
 /// Should-win picks never score (spec rule 1.4.1).
 pub fn score(season: &Season, ballot: &Ballot, results: &Results) -> u32 {
@@ -38,7 +44,7 @@ pub fn score(season: &Season, ballot: &Ballot, results: &Results) -> u32 {
                 .is_some_and(|pick| pick_outcome(pick, results.winners(&category.key)) == PickOutcome::Correct)
         })
         .count();
-    u32::try_from(correct_picks).expect("a season has far fewer categories than u32::MAX")
+    count_as_u32(correct_picks)
 }
 
 /// A player as the leaderboard needs them. `Id` is whatever the caller uses to tell players apart.
@@ -89,7 +95,7 @@ pub fn leaderboard<Id>(
         // Rows are sorted by score, so everyone above with a different score has a higher one.
         let rank = match standings.last() {
             Some(above) if above.score == score => above.rank,
-            _ => u32::try_from(position + 1).expect("a leaderboard has far fewer rows than u32::MAX"),
+            _ => count_as_u32(position + 1),
         };
         standings.push(Standing {
             rank,
@@ -129,7 +135,7 @@ pub fn should_win_statistics<'a>(
                         .iter()
                         .filter(|ballot| ballot.pick(&category.key, PickKind::ShouldWin) == Some(&nominee.key))
                         .count();
-                    let wishes = u32::try_from(wishes).expect("a season has far fewer players than u32::MAX");
+                    let wishes = count_as_u32(wishes);
                     (nominee.key.clone(), wishes)
                 })
                 .collect();

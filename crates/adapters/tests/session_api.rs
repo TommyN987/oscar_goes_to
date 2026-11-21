@@ -1,4 +1,9 @@
 //! The session operations through the router, signed in through the fake identity route.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "a test fails by panicking, in its helper functions too"
+)]
 #![cfg(feature = "fake-identity")]
 
 use std::sync::Arc;
@@ -9,7 +14,7 @@ use adapters::telemetry::Telemetry;
 use application::admin_emails::AdminEmails;
 use axum::Router;
 use axum::body::Body;
-use axum::http::header::{CONTENT_TYPE, COOKIE, SET_COOKIE};
+use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE, COOKIE, SET_COOKIE};
 use axum::http::{Request, Response, StatusCode};
 use http_body_util::BodyExt;
 use serde_json::json;
@@ -103,18 +108,35 @@ async fn rule_2_2_3_a_fake_player_of_the_callers_choice_signs_in(database: PgPoo
     );
 }
 
-#[sqlx::test]
-async fn rule_3_2_2_the_session_cookie_is_http_only_secure_lax_and_host_only(database: PgPool) {
-    let signed_in = sign_in_as_pat(&app(database), None).await;
-
-    let attributes: Vec<&str> = set_cookie(&signed_in).split("; ").skip(1).collect();
-    assert!(set_cookie(&signed_in).starts_with("__Host-session="));
+/// Asserts what spec rule 3.2.2 asks of a `Set-Cookie` header for the session cookie.
+/// A browser refuses a `__Host-` cookie that lacks any of Secure, `Path=/` and the absence of Domain,
+/// so the header that clears the cookie must meet the rule as the one that sets it does.
+fn assert_http_only_secure_lax_and_host_only(set_cookie: &str) {
+    let attributes: Vec<&str> = set_cookie.split("; ").skip(1).collect();
+    assert!(set_cookie.starts_with("__Host-session="));
     assert!(attributes.contains(&"HttpOnly"));
     assert!(attributes.contains(&"Secure"));
     assert!(attributes.contains(&"SameSite=Lax"));
     // Host-only: the browser sends it to this host alone, because no Domain attribute widens it.
     assert!(attributes.contains(&"Path=/"));
     assert!(!attributes.iter().any(|attribute| attribute.starts_with("Domain")));
+}
+
+#[sqlx::test]
+async fn rule_3_2_2_the_session_cookie_is_http_only_secure_lax_and_host_only(database: PgPool) {
+    let signed_in = sign_in_as_pat(&app(database), None).await;
+
+    assert_http_only_secure_lax_and_host_only(set_cookie(&signed_in));
+}
+
+#[sqlx::test]
+async fn rule_3_2_2_the_cookie_that_signs_out_has_the_same_attributes(database: PgPool) {
+    let app = app(database);
+    let cookie = signed_in_cookie(&app).await;
+
+    let signed_out = sign_out(&app, Some(&cookie)).await;
+
+    assert_http_only_secure_lax_and_host_only(set_cookie(&signed_out));
 }
 
 #[sqlx::test]
@@ -149,6 +171,70 @@ async fn who_am_i_without_a_live_session_is_401(database: PgPool) {
     assert_eq!(with_a_malformed_cookie.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(without_a_cookie.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(body_json(without_a_cookie).await["code"], "not_signed_in");
+}
+
+/// A browser sends a cookie's value as it was set, and another cookie of this host may hold any bytes.
+#[sqlx::test]
+async fn the_session_cookie_is_found_beside_a_cookie_that_is_not_ascii(database: PgPool) {
+    let app = app(database);
+    let cookie = signed_in_cookie(&app).await;
+
+    let answer = who_am_i(&app, Some(&format!("theme=Grün; {cookie}"))).await;
+
+    assert_eq!(answer.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn a_malformed_session_cookie_does_not_hide_a_valid_one(database: PgPool) {
+    let app = app(database);
+    let cookie = signed_in_cookie(&app).await;
+
+    let answer = who_am_i(&app, Some(&format!("__Host-session=not-a-token; {cookie}"))).await;
+
+    assert_eq!(answer.status(), StatusCode::OK);
+}
+
+/// An HTTP/2 client may send each cookie in a header of its own.
+#[sqlx::test]
+async fn the_session_cookie_is_found_in_a_second_cookie_header(database: PgPool) {
+    let app = app(database);
+    let cookie = signed_in_cookie(&app).await;
+
+    let request = Request::get("/api/session")
+        .header(COOKIE, "theme=dark")
+        .header(COOKIE, &cookie)
+        .body(Body::empty())
+        .unwrap();
+
+    assert_eq!(send(&app, request).await.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn a_cookie_whose_name_only_resembles_the_session_cookies_is_ignored(database: PgPool) {
+    let app = app(database);
+    let cookie = signed_in_cookie(&app).await;
+    let token = cookie.strip_prefix("__Host-session=").unwrap();
+
+    let with_a_longer_name = who_am_i(&app, Some(&format!("__Host-session-old={token}"))).await;
+    let with_a_prefixed_name = who_am_i(&app, Some(&format!("x__Host-session={token}"))).await;
+
+    assert_eq!(with_a_longer_name.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(with_a_prefixed_name.status(), StatusCode::UNAUTHORIZED);
+}
+
+/// An answer that depends on the cookie, or sets one, must not be kept by any cache between server and browser.
+#[sqlx::test]
+async fn no_cache_may_store_an_api_response(database: PgPool) {
+    let app = app(database);
+    let signed_in = sign_in_as_pat(&app, None).await;
+    let cookie = cookie_of(&signed_in);
+
+    let who = who_am_i(&app, Some(&cookie)).await;
+    let refused = who_am_i(&app, None).await;
+
+    for response in [&signed_in, &who, &refused] {
+        assert_eq!(response.headers().get(CACHE_CONTROL).unwrap(), "no-store");
+    }
 }
 
 #[sqlx::test]

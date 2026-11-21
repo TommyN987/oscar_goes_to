@@ -16,8 +16,11 @@ use application::admin_emails::AdminEmails;
 use application::clock::Clock;
 use axum::Router;
 use axum::extract::FromRef;
+use axum::http::HeaderValue;
+use axum::http::header::CACHE_CONTROL;
 use axum::middleware;
 use sqlx::PgPool;
+use tower_http::set_header::SetResponseHeaderLayer;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -30,6 +33,9 @@ pub const MAX_REQUEST_BODY_BYTES: usize = 16 * 1024;
 
 use crate::postgres::PostgresStorage;
 use crate::telemetry::Telemetry;
+
+/// An API answer may depend on the session cookie, or set it, so no cache between server and browser keeps one.
+const NEVER_STORE: HeaderValue = HeaderValue::from_static("no-store");
 
 /// What the API operations work with: storage, the clock, and who the configuration names an admin.
 #[derive(Clone)]
@@ -86,13 +92,15 @@ pub fn openapi() -> utoipa::openapi::OpenApi {
 
 /// The application's router.
 ///
-/// Unknown `/api/*` paths answer with a JSON 404.
+/// Unknown `/api/*` paths answer with a JSON 404, and no cache may store any `/api` answer.
 /// With a `spa`, every other path serves a file from it, or its shell (spec rule 2.4.2).
 /// A request with an oversize body is refused (spec rule 6.5.2), every request is recorded through
 /// `telemetry`, and every response carries the security headers (spec rule 6.5.1).
 pub fn router(spa: Option<Spa>, state: ApiState, telemetry: Telemetry) -> Router {
     let (api, _) = api().split_for_parts();
-    let api = api.with_state(state);
+    let api = api
+        .with_state(state)
+        .layer(SetResponseHeaderLayer::overriding(CACHE_CONTROL, NEVER_STORE));
     let routes = match spa {
         Some(spa) => api.merge(spa.into_router()),
         None => api,

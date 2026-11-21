@@ -15,26 +15,36 @@ use utoipa::ToSchema;
 use super::ApiState;
 use super::error::ApiError;
 
+// The cookie's name and its fixed attributes are macros, not constants, so that `concat!` can put them
+// into the cookie that clears a session, which is then checked when the server is compiled.
+
 /// The prefix makes the browser itself refuse the cookie unless it is Secure, host-only and for every path.
-const SESSION_COOKIE: &str = "__Host-session";
+macro_rules! session_cookie_name {
+    () => {
+        "__Host-session"
+    };
+}
 
 /// Script cannot read the cookie, it travels over HTTPS only, and no cross-site request carries it
-/// except a top-level navigation. No `Domain` attribute, so it is host-only.
-const COOKIE_ATTRIBUTES: &str = "Path=/; HttpOnly; Secure; SameSite=Lax";
+/// except a top-level GET navigation. No `Domain` attribute, so it is host-only.
+macro_rules! cookie_attributes {
+    () => {
+        "Path=/; HttpOnly; Secure; SameSite=Lax"
+    };
+}
+
+const SESSION_COOKIE: &str = session_cookie_name!();
 
 /// The longest a browser keeps a cookie. The server ends a session 90 days after its last use (spec rule 3.2.4);
 /// the cookie only has to outlive that.
 const COOKIE_MAX_AGE_SECONDS: u32 = 400 * 24 * 60 * 60;
 
+/// Makes the browser forget its session.
+const CLEARED_SESSION_COOKIE: HeaderValue =
+    HeaderValue::from_static(concat!(session_cookie_name!(), "=; Max-Age=0; ", cookie_attributes!()));
+
 /// One response header, as a handler returns it.
 pub type SetCookie = [(HeaderName, HeaderValue); 1];
-
-fn set_cookie(value: &str, max_age_seconds: u32) -> SetCookie {
-    let cookie = format!("{SESSION_COOKIE}={value}; Max-Age={max_age_seconds}; {COOKIE_ATTRIBUTES}");
-    let cookie =
-        HeaderValue::from_str(&cookie).expect("hexadecimal digits and the fixed attributes are a header value");
-    [(SET_COOKIE, cookie)]
-}
 
 /// Gives the browser the token of the session it now holds.
 #[cfg_attr(
@@ -44,31 +54,41 @@ fn set_cookie(value: &str, max_age_seconds: u32) -> SetCookie {
         reason = "until the sign-in callback of plan item P3.4, only the fake sign-in issues a session"
     )
 )]
+#[expect(
+    clippy::expect_used,
+    reason = "64 hexadecimal digits, a number and fixed ASCII text are always a header value"
+)]
 pub fn session_cookie(token: &SessionToken) -> SetCookie {
     let in_hex: String = token.expose_bytes().iter().map(|byte| format!("{byte:02x}")).collect();
-    set_cookie(&in_hex, COOKIE_MAX_AGE_SECONDS)
-}
-
-/// Makes the browser forget its session.
-fn cleared_session_cookie() -> SetCookie {
-    set_cookie("", 0)
+    let cookie = format!(
+        concat!(session_cookie_name!(), "={}; Max-Age={}; ", cookie_attributes!()),
+        in_hex, COOKIE_MAX_AGE_SECONDS
+    );
+    let cookie = HeaderValue::from_str(&cookie).expect("a session cookie is visible ASCII");
+    [(SET_COOKIE, cookie)]
 }
 
 /// The session token a request carries, if it carries one this server could have issued.
+///
+/// The header is read as bytes, because another cookie of this host may hold bytes that are not ASCII.
+/// A cookie of the right name that is no token is skipped, so it cannot hide a valid one.
 pub fn presented_token(headers: &HeaderMap) -> Option<SessionToken> {
     headers
         .get_all(COOKIE)
         .iter()
-        .filter_map(|header| header.to_str().ok())
-        .flat_map(|header| header.split(';'))
-        .filter_map(|cookie| cookie.trim().split_once('='))
-        .find(|(name, _)| *name == SESSION_COOKIE)
-        .and_then(|(_, value)| token_from_hex(value))
+        .flat_map(|header| header.as_bytes().split(|byte| *byte == b';'))
+        .filter_map(|cookie| {
+            cookie
+                .trim_ascii()
+                .strip_prefix(SESSION_COOKIE.as_bytes())?
+                .strip_prefix(b"=")
+        })
+        .find_map(token_from_hex)
 }
 
 /// Reads 64 lowercase hexadecimal digits, the only form `session_cookie` writes.
-fn token_from_hex(text: &str) -> Option<SessionToken> {
-    let (pairs, []) = text.as_bytes().as_chunks::<2>() else {
+fn token_from_hex(digits: &[u8]) -> Option<SessionToken> {
+    let (pairs, []) = digits.as_chunks::<2>() else {
         return None;
     };
     let mut bytes = [0; 32];
@@ -174,5 +194,5 @@ pub async fn sign_out(
     RequestActor(actor): RequestActor,
 ) -> Result<(StatusCode, SetCookie), ApiError> {
     session::sign_out(&actor, &state.storage).await?;
-    Ok((StatusCode::NO_CONTENT, cleared_session_cookie()))
+    Ok((StatusCode::NO_CONTENT, [(SET_COOKIE, CLEARED_SESSION_COOKIE)]))
 }
