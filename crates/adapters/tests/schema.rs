@@ -237,6 +237,8 @@ async fn a_session_belongs_to_a_player(database: PgPool) {
     );
 }
 
+/// What the schema gives spec rule 3.2.5; plan item P3.8 closes the rule, once an old cookie
+/// is refused after deletion and after removal.
 #[sqlx::test]
 async fn rule_3_2_5_deleting_a_player_deletes_all_their_sessions(database: PgPool) {
     let player = insert_nameless_player(&database, "subject-1").await;

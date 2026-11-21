@@ -120,6 +120,15 @@ impl FakeCollector {
         })
     }
 
+    /// The ID of the exported span named `name`, and the ID of its parent if it has one.
+    fn span_and_parent(&self, name: &str) -> Option<(Vec<u8>, Option<Vec<u8>>)> {
+        self.exported_records("/v1/traces").into_iter().find_map(|span| {
+            let id = first_field(&span, SPAN_ID)?;
+            let parent = first_field(&span, SPAN_PARENT_ID).filter(|parent| !parent.is_empty());
+            (first_field(&span, SPAN_NAME)? == name.as_bytes()).then(|| (id.to_vec(), parent.map(<[u8]>::to_vec)))
+        })
+    }
+
     /// Every span or log record exported to `path`, still encoded.
     fn exported_records(&self, path: &str) -> Vec<Vec<u8>> {
         let exports = self.exports.lock().unwrap();
@@ -136,6 +145,8 @@ impl FakeCollector {
 // at the same place: resource group 1, scope group 2, record 2.
 const PATH_TO_RECORDS: [u64; 3] = [1, 2, 2];
 const SPAN_TRACE_ID: u64 = 1;
+const SPAN_ID: u64 = 2;
+const SPAN_PARENT_ID: u64 = 4;
 const SPAN_NAME: u64 = 5;
 const LOG_RECORD_BODY: u64 = 5;
 const LOG_RECORD_TRACE_ID: u64 = 9;
@@ -496,10 +507,12 @@ fn rule_3_4_2_a_fake_identity_build_exits_non_zero_on_cloud_run() {
     assert!(explanation.contains("K_SERVICE"), "the server said: {explanation}");
 }
 
+/// The part of spec rule 2.7.2 a fake collector can show: the three levels nest in one trace.
+/// Plan item P3.6 closes the rule by reading such a trace back from Grafana.
 /// Needs the Postgres named by `DATABASE_URL`, like the other tests.
 #[cfg(feature = "fake-identity")]
 #[test]
-fn rule_2_7_2_a_request_yields_an_http_a_use_case_and_a_sql_span_in_one_trace() {
+fn rule_2_7_2_a_request_nests_an_http_a_use_case_and_a_sql_span() {
     let collector = FakeCollector::start();
     let database = ScratchDatabase::create("rule_2_7_2_three_span_levels");
     let server = Server::start_on(&collector, &database.url());
@@ -522,16 +535,19 @@ fn rule_2_7_2_a_request_yields_an_http_a_use_case_and_a_sql_span_in_one_trace() 
         .unwrap();
     assert!(answer.starts_with("HTTP/1.1 200"), "who am I answered: {answer}");
 
-    let trace_of_the_request = collector
-        .trace_id_of_span("GET /api/session")
-        .expect("the request's span was exported");
-    for inner_span in ["authenticate", "who_am_i", "postgres.session.use"] {
-        assert_eq!(
-            collector.trace_id_of_span(inner_span).as_ref(),
-            Some(&trace_of_the_request),
-            "the span `{inner_span}` belongs to the request's trace"
-        );
-    }
+    let exported = |name: &str| {
+        collector
+            .span_and_parent(name)
+            .unwrap_or_else(|| panic!("the span `{name}` was exported"))
+    };
+    let (http_span, parent_of_the_http_span) = exported("GET /api/session");
+    let (use_case_span, parent_of_the_use_case_span) = exported("authenticate");
+    let (_, parent_of_the_sql_span) = exported("postgres.session.use");
+    let (_, parent_of_the_second_use_case_span) = exported("who_am_i");
+    assert_eq!(parent_of_the_http_span, None, "the HTTP span is the root of the trace");
+    assert_eq!(parent_of_the_use_case_span, Some(http_span.clone()));
+    assert_eq!(parent_of_the_sql_span, Some(use_case_span));
+    assert_eq!(parent_of_the_second_use_case_span, Some(http_span));
     // Players appear by ID only (spec rule 2.7.6), and no token reaches telemetry (spec rule 6.5.6).
     let token = cookie.split_once('=').unwrap().1;
     for path in ["/v1/traces", "/v1/logs"] {

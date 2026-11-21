@@ -62,12 +62,15 @@ paths:
 
 ## Tests
 
+- A rule is closed only when a test proves its done-condition, read literally (plan decision D22).
+  A proof that will come later leaves the rule open, owned by the plan item that brings it.
 - A test that pins a spec rule carries its number in its name: `rule_2_4_5_readiness_fails_without_the_database`.
 - Package 1 is stricter, because `scripts/check-rule-ledger.sh` counts its rules as tested by name:
   a test is named `rule_1_x_y_` only when it meets that rule's done-condition, and the rule's line leaves
   `scripts/rule-ledger-pending.txt` in the same change.
   A test of a package-1 rule's pure half, closed by a later plan item, gets a plain name and a comment naming the rule.
-  Outside package 1, a test may carry the number of a rule it pins only in part.
+  Outside package 1, a test may carry the number of a rule it pins only in part;
+  its comment then says which part, and names the plan item that closes the rule.
 - Rules are tested in `domain` with unit and property tests, without IO.
 - Use cases are tested against real Postgres with `#[sqlx::test]`, a fake clock and a fake identity. There is no in-memory storage fake.
 - The fake identity adapter sits behind the compile-time feature `fake-identity`, which the release image is built without; CI probes the built image.
