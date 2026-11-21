@@ -14,14 +14,9 @@ impl AdminEmails {
         Self(Vec::new())
     }
 
-    /// Reads a comma-separated list. Blank entries are ignored.
-    pub fn parse(list: &str) -> Self {
-        Self(
-            list.split(',')
-                .map(|email| email.trim().to_lowercase())
-                .filter(|email| !email.is_empty())
-                .collect(),
-        )
+    /// The admins are exactly the holders of `emails`.
+    pub fn new(emails: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
+        Self(emails.into_iter().map(|email| email.as_ref().to_lowercase()).collect())
     }
 
     pub fn contains(&self, email: &str) -> bool {
@@ -42,7 +37,7 @@ mod tests {
 
     #[test]
     fn an_email_on_the_list_is_an_admin_whatever_its_case() {
-        let admins = AdminEmails::parse("tommy@example.com, Second.Admin@Example.com");
+        let admins = AdminEmails::new(["tommy@example.com", "Second.Admin@Example.com"]);
 
         assert!(admins.contains("tommy@example.com"));
         assert!(admins.contains("TOMMY@example.com"));
@@ -53,13 +48,12 @@ mod tests {
     #[test]
     fn an_empty_list_names_no_admin() {
         assert!(!AdminEmails::none().contains("tommy@example.com"));
-        assert!(!AdminEmails::parse("").contains(""));
-        assert!(!AdminEmails::parse(" , ,").contains(""));
+        assert!(!AdminEmails::none().contains(""));
     }
 
     #[test]
     fn rule_2_7_6_debug_output_hides_the_emails() {
-        let admins = AdminEmails::parse("tommy@example.com,second@example.com");
+        let admins = AdminEmails::new(["tommy@example.com", "second@example.com"]);
 
         assert_eq!(format!("{admins:?}"), "AdminEmails(<2 configured>)");
     }

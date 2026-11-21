@@ -1,10 +1,12 @@
 //! The session use cases: sign in, authenticate a request, who am I, sign out.
 
+use std::error::Error;
+
 use domain::player::{Player, VerifiedIdentity};
 use domain::session::live_if_used_after;
 use tracing::field::Empty;
 
-use crate::actor::Actor;
+use crate::actor::{Actor, NotSignedIn};
 use crate::admin_emails::AdminEmails;
 use crate::clock::Clock;
 use crate::session_token::{RandomnessUnavailable, SessionToken};
@@ -31,9 +33,11 @@ pub async fn sign_in<S: PlayerStore + SessionStore>(
     storage: &S,
     clock: &dyn Clock,
 ) -> Result<SessionToken, SignInError> {
-    let token = SessionToken::generate()?;
+    let token = SessionToken::generate().inspect_err(|error| {
+        tracing::error!(error = error as &dyn Error, "no session token could be generated");
+    })?;
     let now = clock.now();
-    let player = storage.record_sign_in(identity, now).await?;
+    let player = storage.add_or_refresh_player(identity, now).await?;
     tracing::Span::current().record("player.id", player.value());
 
     if let Some(presented) = presented {
@@ -73,11 +77,6 @@ pub async fn authenticate<S: SessionStore>(
     })
 }
 
-/// The actor is not a signed-in player.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("the actor is not signed in")]
-pub struct NotSignedIn;
-
 /// The signed-in player an actor is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SignedIn<'a> {
@@ -88,10 +87,9 @@ pub struct SignedIn<'a> {
 /// Tells a signed-in player who they are.
 #[tracing::instrument(skip_all)]
 pub fn who_am_i(actor: &Actor) -> Result<SignedIn<'_>, NotSignedIn> {
-    let player = actor.player().ok_or(NotSignedIn)?;
     Ok(SignedIn {
-        player,
-        is_admin: matches!(actor, Actor::Admin(_)),
+        player: actor.require_player()?,
+        is_admin: actor.is_admin(),
     })
 }
 
@@ -107,7 +105,7 @@ pub enum SignOutError {
 /// Ends every session of the signed-in player, on every device (spec rule 3.2.5).
 #[tracing::instrument(skip_all)]
 pub async fn sign_out<S: SessionStore>(actor: &Actor, storage: &S) -> Result<(), SignOutError> {
-    let player = actor.player().ok_or(NotSignedIn)?;
+    let player = actor.require_player()?;
     storage.end_sessions_of(player.id).await?;
     Ok(())
 }

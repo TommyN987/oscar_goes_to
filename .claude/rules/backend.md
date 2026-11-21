@@ -19,6 +19,9 @@ paths:
   The HTTP adapter only turns the session cookie into an `Actor`; a request without a live session is `Actor::Anonymous`,
   and the use case refuses it.
 - A storage port is one trait per aggregate in `application/src/storage.rs`; `PostgresStorage` implements them all.
+  A port method is named for what the store does, such as `add_or_refresh_player`, not for the event that calls it.
+- A failure is logged once, where it happens and inside its span: the storage adapter logs a storage failure, so no `From` impl logs.
+- The format of an environment variable is read in `config.rs`; `application` takes the values, such as a list of emails.
 - A type that holds a secret or a configured list, such as `SessionToken` or `AdminEmails`, writes its own `Debug` that hides the value.
   A type with a player's data, such as `Player` or `Actor`, derives `Debug` for test output and is never passed to a `tracing` macro; a span records `player.id` and nothing else about a player.
 - There is no unit-of-work abstraction: no use case writes two aggregates atomically.
@@ -80,7 +83,8 @@ paths:
 - Rules are tested in `domain` with unit and property tests, without IO.
 - Use cases are tested against real Postgres with `#[sqlx::test]`, a fake clock and a fake identity. There is no in-memory storage fake.
 - The fake identity adapter sits behind the compile-time feature `fake-identity`, which the release image is built without; CI probes the built image.
-  `just check-rust` lints and tests with every feature. A test file that signs in through the fake route starts with `#![cfg(feature = "fake-identity")]`.
+  `just check-rust` lints and tests with every feature. A test that signs in through the fake route is gated on the feature: the whole file with `#![cfg(feature = "fake-identity")]`,
+  or the one test and its helpers with `#[cfg(feature = "fake-identity")]`. `just check-rust` also lints without the feature, which finds a helper left ungated.
 - A use-case test passes its own fake clock; it never sleeps and never reads the machine's time.
 - The router is tested in-process with `tower::ServiceExt::oneshot`, as in `crates/adapters/tests/http.rs`.
 - Check that a new test can fail: break the code it guards once, and see it go red.

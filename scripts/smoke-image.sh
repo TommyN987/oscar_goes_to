@@ -63,4 +63,8 @@ expect "the release image has no fake sign-in" \
     "$(curl --silent --request POST --header 'Content-Type: application/json' \
         --data '{"subject":"probe","email":"probe@example.com"}' \
         "http://localhost:$port/api/fake-identity/sign-in")" '"code":"not_found"'
+expect "the fake sign-in route answers 404" \
+    "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
+        --header 'Content-Type: application/json' --data '{"subject":"probe","email":"probe@example.com"}' \
+        "http://localhost:$port/api/fake-identity/sign-in")" "404"
 expect "the container runs as non-root" "$(docker inspect --format '{{.Config.User}}' "$container")" "nonroot"

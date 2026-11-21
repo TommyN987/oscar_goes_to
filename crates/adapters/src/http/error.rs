@@ -1,8 +1,7 @@
 //! The one JSON shape every API error shares (spec rule 6.4.1).
 
-use std::error::Error;
-
-use application::session::{NotSignedIn, SignInError, SignOutError};
+use application::actor::NotSignedIn;
+use application::session::{SignInError, SignOutError};
 use application::storage::StorageError;
 use axum::Json;
 use axum::http::StatusCode;
@@ -63,10 +62,9 @@ impl From<NotSignedIn> for ApiError {
     }
 }
 
-/// The cause goes to the log, in the error's message; the client learns only that the failure is not its own.
+/// The storage adapter has logged the cause; the client learns only that the failure is not its own.
 impl From<StorageError> for ApiError {
-    fn from(error: StorageError) -> Self {
-        tracing::error!(error = &error as &dyn Error, "storage failed");
+    fn from(_: StorageError) -> Self {
         Self::new(ErrorCode::Internal, SERVER_FAILED)
     }
 }
@@ -74,10 +72,8 @@ impl From<StorageError> for ApiError {
 impl From<SignInError> for ApiError {
     fn from(error: SignInError) -> Self {
         match error {
-            SignInError::NoToken(cause) => {
-                tracing::error!(error = &cause as &dyn Error, "no session token could be generated");
-                Self::new(ErrorCode::Internal, SERVER_FAILED)
-            }
+            // The use case has logged the cause.
+            SignInError::NoToken(_) => Self::new(ErrorCode::Internal, SERVER_FAILED),
             SignInError::Storage(failure) => failure.into(),
         }
     }

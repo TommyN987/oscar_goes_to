@@ -218,8 +218,8 @@ async fn admin_rights_follow_the_configured_emails(database: PgPool) {
     let storage = PostgresStorage::new(database);
     let clock = FakeClock::on_day(0);
     let token = sign_in_on_a_new_device(&pat(), &storage, &clock).await;
-    let pat_is_an_admin = AdminEmails::parse("someone@example.com,Pat@Example.com");
-    let pat_is_no_admin = AdminEmails::parse("someone@example.com");
+    let pat_is_an_admin = AdminEmails::new(["someone@example.com", "Pat@Example.com"]);
+    let pat_is_no_admin = AdminEmails::new(["someone@example.com"]);
 
     let under_the_first = authenticate(Some(&token), &storage, &clock, &pat_is_an_admin)
         .await

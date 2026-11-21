@@ -19,7 +19,7 @@ pub trait PlayerStore: Sync {
     ///
     /// Afterwards the stored email is the identity's. A display name already chosen is left alone,
     /// and the provider's name is kept as a suggestion only when the player is added.
-    fn record_sign_in(
+    fn add_or_refresh_player(
         &self,
         identity: &VerifiedIdentity,
         now: UtcInstant,

@@ -12,24 +12,28 @@ pub struct RandomnessUnavailable(#[from] getrandom::Error);
 /// A session ID: 256 random bits that only the browser holds.
 ///
 /// Its `Debug` output hides the value, so it cannot reach a log or a span (spec rule 6.5.6).
-#[derive(Clone, PartialEq, Eq)]
-pub struct SessionToken([u8; 32]);
+/// It can be neither compared nor copied: a comparison would not take constant time,
+/// and one value is one browser's secret.
+pub struct SessionToken([u8; Self::BYTES]);
 
 impl SessionToken {
+    /// A token is 256 bits (spec rule 3.2.1).
+    pub const BYTES: usize = 32;
+
     /// A new token from the operating system's random source.
     pub fn generate() -> Result<Self, RandomnessUnavailable> {
-        let mut bytes = [0; 32];
+        let mut bytes = [0; Self::BYTES];
         getrandom::fill(&mut bytes)?;
         Ok(Self(bytes))
     }
 
     /// The token a browser sent back.
-    pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+    pub const fn from_bytes(bytes: [u8; Self::BYTES]) -> Self {
         Self(bytes)
     }
 
     /// The token itself. Give it only to the browser it belongs to; never store or log it.
-    pub const fn expose_bytes(&self) -> &[u8; 32] {
+    pub const fn expose_bytes(&self) -> &[u8; Self::BYTES] {
         &self.0
     }
 
@@ -46,7 +50,6 @@ impl fmt::Debug for SessionToken {
 }
 
 /// The SHA-256 hash of a session token. A token cannot be recovered from it.
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionTokenHash([u8; 32]);
 
 impl SessionTokenHash {
@@ -69,7 +72,7 @@ mod tests {
 
     #[test]
     fn rule_3_2_1_a_token_is_hashed_with_sha_256() {
-        let token = SessionToken::from_bytes([0; 32]);
+        let token = SessionToken::from_bytes([0; SessionToken::BYTES]);
 
         let hash_in_hex: String = token
             .hash()
@@ -85,7 +88,7 @@ mod tests {
 
     #[test]
     fn rule_6_5_6_debug_output_hides_the_token() {
-        let token = SessionToken::from_bytes([0xab; 32]);
+        let token = SessionToken::from_bytes([0xab; SessionToken::BYTES]);
 
         assert_eq!(format!("{token:?}"), "SessionToken(<redacted>)");
     }

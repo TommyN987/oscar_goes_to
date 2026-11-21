@@ -9,7 +9,7 @@ use super::MAX_REQUEST_BODY_BYTES;
 use super::error::{ApiError, ErrorCode};
 
 /// Answers 413 when the declared `Content-Length` exceeds the limit, before any of the body is read.
-/// A body with no declared length passes here; nothing reads one yet.
+/// A body with no declared length passes here; plan item P3.3 caps that one where a body is read.
 pub async fn refuse_oversize_body(request: Request, next: Next) -> Result<Response, ApiError> {
     let declared_length = request
         .headers()
