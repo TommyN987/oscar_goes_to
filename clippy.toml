@@ -1,0 +1,4 @@
+# A test fails by panicking, so `unwrap` and `expect` are its normal way to fail.
+# This covers test functions and `#[cfg(test)]` modules; a file under `tests/` says the same in its first lines.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

@@ -30,10 +30,16 @@ paths:
 - An error type derives `thiserror::Error`, with one `#[error("...")]` message per variant; an error gets no hand-written `Display` or `Error` impl.
 - Where an error only wraps another, the conversion is a `#[from]` variant; `map_err` is for adding context the source lacks, such as the variable's name.
 - `thiserror` is declared once, under `[workspace.dependencies]`. It is the only run-time dependency of `domain`.
+- Code that runs in production does not panic on a failure: clippy denies `unwrap` and `expect` outside tests.
+  A failure becomes a typed error, or a value that is right at the limit, such as a saturated count.
+  A call that cannot fail by construction keeps its `expect` under `#[expect(clippy::expect_used, reason = "...")]`,
+  and the reason names what guarantees it. A file under `tests/` allows both lints in its first lines.
 
 ## HTTP
 
 - Handlers stay thin: extract, call a use case, map the result.
+- Every `/api` answer carries `Cache-Control: no-store`, set once in `http/mod.rs`; a handler sets no cache header.
+- A cookie header is read as bytes: another cookie of the host may hold bytes that are not ASCII.
 - Every API error is an `ApiError` from `crates/adapters/src/http/error.rs`, with a stable `ErrorCode`. A code is never renamed.
 - OpenAPI is code-first: each handler carries `#[utoipa::path]` and is registered once in `http/mod.rs`.
   After changing a handler or a wire type, run `just generate`; never edit `openapi.json` by hand.

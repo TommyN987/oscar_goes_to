@@ -25,6 +25,10 @@ pub struct ChosenIdentity {
     name: Option<String>,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "the claims built here say the email is verified; plan item P3.4 maps the refusal to an API error instead"
+)]
 pub async fn sign_in(
     State(state): State<ApiState>,
     headers: HeaderMap,

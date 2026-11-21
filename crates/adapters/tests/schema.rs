@@ -1,4 +1,9 @@
 //! The schema the migrations build, probed with direct SQL.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "a test fails by panicking, in its helper functions too"
+)]
 
 use std::fmt::Debug;
 use std::fs;

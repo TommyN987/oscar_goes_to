@@ -1,5 +1,10 @@
 //! The binary as a process, exporting to a fake OTLP collector:
 //! what SIGTERM does to a request in flight, and what ties an exported log record to its trace.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "a test fails by panicking, in its helper functions too"
+)]
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -121,6 +126,7 @@ impl FakeCollector {
     }
 
     /// The ID of the exported span named `name`, and the ID of its parent if it has one.
+    #[cfg(feature = "fake-identity")]
     fn span_and_parent(&self, name: &str) -> Option<(Vec<u8>, Option<Vec<u8>>)> {
         self.exported_records("/v1/traces").into_iter().find_map(|span| {
             let id = first_field(&span, SPAN_ID)?;
@@ -145,7 +151,9 @@ impl FakeCollector {
 // at the same place: resource group 1, scope group 2, record 2.
 const PATH_TO_RECORDS: [u64; 3] = [1, 2, 2];
 const SPAN_TRACE_ID: u64 = 1;
+#[cfg(feature = "fake-identity")]
 const SPAN_ID: u64 = 2;
+#[cfg(feature = "fake-identity")]
 const SPAN_PARENT_ID: u64 = 4;
 const SPAN_NAME: u64 = 5;
 const LOG_RECORD_BODY: u64 = 5;

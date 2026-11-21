@@ -1,4 +1,9 @@
 //! The router, called in-process without a socket.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "a test fails by panicking, in its helper functions too"
+)]
 
 use std::fs;
 use std::path::PathBuf;

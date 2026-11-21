@@ -7,20 +7,31 @@ use tracing::field::Empty;
 use crate::actor::Actor;
 use crate::admin_emails::AdminEmails;
 use crate::clock::Clock;
-use crate::session_token::SessionToken;
+use crate::session_token::{RandomnessUnavailable, SessionToken};
 use crate::storage::{PlayerStore, SessionStore, StorageError};
+
+/// Why a sign-in did not happen.
+#[derive(Debug, thiserror::Error)]
+pub enum SignInError {
+    #[error(transparent)]
+    NoToken(#[from] RandomnessUnavailable),
+    #[error(transparent)]
+    Storage(#[from] StorageError),
+}
 
 /// Signs in the person `identity` describes and returns the token of their new session.
 ///
 /// The session the browser `presented`, if any, is ended: every sign-in gets a new ID (spec rule 3.2.3).
 /// The player's sessions on other devices stay.
+/// The token is generated before anything is written, so a failure to generate it changes nothing.
 #[tracing::instrument(skip_all, fields(player.id = Empty))]
 pub async fn sign_in<S: PlayerStore + SessionStore>(
     identity: &VerifiedIdentity,
     presented: Option<&SessionToken>,
     storage: &S,
     clock: &dyn Clock,
-) -> Result<SessionToken, StorageError> {
+) -> Result<SessionToken, SignInError> {
+    let token = SessionToken::generate()?;
     let now = clock.now();
     let player = storage.record_sign_in(identity, now).await?;
     tracing::Span::current().record("player.id", player.value());
@@ -28,7 +39,6 @@ pub async fn sign_in<S: PlayerStore + SessionStore>(
     if let Some(presented) = presented {
         storage.end_session(&presented.hash()).await?;
     }
-    let token = SessionToken::generate();
     storage.start_session(&token.hash(), player, now).await?;
     Ok(token)
 }

@@ -13,3 +13,10 @@ thiserror = "2.0.21"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+
+# Code that runs in production returns its failures; it does not panic on them.
+# A call that cannot fail by construction carries `#[expect(clippy::expect_used, reason = "...")]`.
+# clippy.toml lifts both lints inside tests, which fail by panicking.
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

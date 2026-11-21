@@ -1,4 +1,9 @@
 //! The session use cases on real Postgres, with a clock the test sets.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "a test fails by panicking, in its helper functions too"
+)]
 
 use std::sync::Mutex;
 
@@ -103,7 +108,7 @@ async fn rule_3_2_4_a_session_has_ended_at_exactly_90_days(database: PgPool) {
 async fn a_request_without_a_known_token_is_anonymous(database: PgPool) {
     let storage = PostgresStorage::new(database);
     let clock = FakeClock::on_day(0);
-    let never_issued = SessionToken::generate();
+    let never_issued = SessionToken::generate().unwrap();
 
     let without_a_token = authenticate(None, &storage, &clock, &AdminEmails::none())
         .await
@@ -225,4 +230,47 @@ async fn admin_rights_follow_the_configured_emails(database: PgPool) {
 
     assert!(matches!(under_the_first, Actor::Admin(_)));
     assert!(matches!(under_the_second, Actor::Player(_)));
+}
+
+/// Two people share one browser: the second signs in while the first one's session is still presented.
+#[sqlx::test]
+async fn signing_in_as_another_player_ends_the_presented_session_and_no_other(database: PgPool) {
+    let storage = PostgresStorage::new(database);
+    let clock = FakeClock::on_day(0);
+    let pats_phone = sign_in_on_a_new_device(&pat(), &storage, &clock).await;
+    let shared_laptop_as_pat = sign_in_on_a_new_device(&pat(), &storage, &clock).await;
+    let sam = identity("subject-sam", "sam@example.com");
+
+    let shared_laptop_as_sam = sign_in(&sam, Some(&shared_laptop_as_pat), &storage, &clock)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        actor_of(&shared_laptop_as_pat, &storage, &clock).await,
+        Actor::Anonymous
+    );
+    assert_eq!(
+        player_of(actor_of(&shared_laptop_as_sam, &storage, &clock).await).email,
+        "sam@example.com"
+    );
+    assert_eq!(
+        player_of(actor_of(&pats_phone, &storage, &clock).await).email,
+        "pat@example.com"
+    );
+}
+
+/// A browser keeps presenting its cookie after the session behind it has ended.
+#[sqlx::test]
+async fn a_sign_in_that_presents_an_ended_session_succeeds(database: PgPool) {
+    let storage = PostgresStorage::new(database);
+    let clock = FakeClock::on_day(0);
+    let ended = sign_in_on_a_new_device(&pat(), &storage, &clock).await;
+    sign_out(&actor_of(&ended, &storage, &clock).await, &storage)
+        .await
+        .unwrap();
+
+    let again = sign_in(&pat(), Some(&ended), &storage, &clock).await.unwrap();
+
+    assert!(matches!(actor_of(&again, &storage, &clock).await, Actor::Player(_)));
+    assert_eq!(actor_of(&ended, &storage, &clock).await, Actor::Anonymous);
 }
